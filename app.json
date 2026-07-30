@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "DriveGame",
+    "slug": "drive-game",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+
+    "android": {
+      "package": "com.drivegame.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow DriveGame to track your drives."
+        }
+      ]
+    ]
+  }
+}
