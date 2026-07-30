@@ -29,12 +29,12 @@ import {
 import { UserProfile, Trip, LeaderboardEntry } from "../types";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDutwZoAo-LvAeXq5btSj7VQHlPpsLoYTg",
+  authDomain: "drivegame-32eb5.firebaseapp.com",
+  projectId: "drivegame-32eb5",
+  storageBucket: "drivegame-32eb5.firebasestorage.app",
+  messagingSenderId: "797436193798",
+  appId: "1:797436193798:web:5fb3efbd47ebcc3cd76787",
 };
 
 const app = initializeApp(firebaseConfig);
