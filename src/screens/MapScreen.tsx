@@ -7,12 +7,7 @@ import {
   Alert,
 } from "react-native";
 
-import MapView, {
-  Polyline,
-  UrlTile,
-  Region,
-} from "react-native-maps";
-
+import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -34,10 +29,11 @@ import {
 import { TripPoint } from "../types";
 import { colors, spacing } from "../constants/theme";
 
+
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
 
-  const mapRef = useRef<MapView>(null);
+  const webRef = useRef<WebView>(null);
   const watchSub = useRef<any>(null);
   const startTime = useRef(0);
 
@@ -45,7 +41,11 @@ export default function MapScreen() {
   const [points, setPoints] = useState<TripPoint[]>([]);
   const [distanceKm, setDistanceKm] = useState(0);
   const [speed, setSpeed] = useState(0);
-  const [region, setRegion] = useState<Region | null>(null);
+  const [location, setLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
 
   useEffect(() => {
     (async () => {
@@ -61,22 +61,39 @@ export default function MapScreen() {
 
       const pos = await getCurrentPosition();
 
-      console.log("POSITION:", pos);
-
       if (pos) {
-        setRegion({
+        const loc = {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        });
+        };
+
+        setLocation(loc);
+
+        webRef.current?.postMessage(
+          JSON.stringify({
+            type: "location",
+            ...loc,
+          })
+        );
       }
     })();
+
 
     return () => {
       watchSub.current?.remove();
     };
   }, []);
+
+
+  const sendRouteToMap = (route: TripPoint[]) => {
+    webRef.current?.postMessage(
+      JSON.stringify({
+        type: "route",
+        points: route,
+      })
+    );
+  };
+
 
   const startDrive = useCallback(async () => {
     setPoints([]);
@@ -86,30 +103,54 @@ export default function MapScreen() {
     startTime.current = Date.now();
     setIsTracking(true);
 
+
     watchSub.current = await watchPosition((point) => {
+
       setPoints((old) => {
-        const updated = [...old, point];
+
+        const updated = [
+          ...old,
+          point,
+        ];
 
         setDistanceKm(
           calculateDistanceKm(updated)
         );
 
+        sendRouteToMap(updated);
+
         return updated;
       });
 
-      if (point.speed !== null && point.speed !== undefined) {
+
+      if (
+        point.speed !== undefined &&
+        point.speed !== null
+      ) {
         setSpeed(
           Math.round(point.speed * 3.6)
         );
       }
+
+
+      setLocation({
+        latitude: point.latitude,
+        longitude: point.longitude,
+      });
+
     });
+
   }, []);
 
+
+
   const stopDrive = async () => {
+
     watchSub.current?.remove();
     watchSub.current = null;
 
     setIsTracking(false);
+
 
     if (points.length < 2) {
       Alert.alert(
@@ -119,13 +160,16 @@ export default function MapScreen() {
       return;
     }
 
+
     const endTime = Date.now();
 
     const duration =
       (endTime - startTime.current) / 1000;
 
+
     const maxSpeed =
       calculateMaxSpeedKmh(points);
+
 
     const avgSpeed =
       calculateAvgSpeedKmh(
@@ -133,14 +177,18 @@ export default function MapScreen() {
         duration
       );
 
+
     const user = auth.currentUser;
 
     if (!user) return;
 
-    const place = await reverseGeocode(
-      points[0].latitude,
-      points[0].longitude
-    );
+
+    const place =
+      await reverseGeocode(
+        points[0].latitude,
+        points[0].longitude
+      );
+
 
     await saveTrip({
       userId: user.uid,
@@ -158,138 +206,253 @@ export default function MapScreen() {
       country: place.country,
     });
 
+
     await updateUserStats(
       user.uid,
       distanceKm,
       maxSpeed
     );
 
+
     Alert.alert(
       "Drive saved",
       `${distanceKm.toFixed(2)} km`
     );
 
+
     setPoints([]);
     setDistanceKm(0);
+
   };
 
-  if (!region) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.text}>
-          Getting location...
-        </Text>
-      </View>
-    );
-  }
 
-  return (
-    <View style={styles.container}>
 
-      <MapView
-        ref={mapRef}
-        style={StyleSheet.absoluteFill}
-        region={region}
-        mapType="none"
-        showsUserLocation
-        followsUserLocation={isTracking}
-        onMapReady={() => {
-          console.log("MAP READY");
-        }}
-      >
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <UrlTile
-          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maximumZ={19}
-        />
+<link 
+rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"
+/>
 
-        {points.length > 1 && (
-          <Polyline
-            coordinates={points.map((p) => ({
-              latitude: p.latitude,
-              longitude: p.longitude,
-            }))}
-            strokeColor={colors.primary}
-            strokeWidth={5}
-          />
-        )}
+<style>
+html,body,#map{
+height:100%;
+margin:0;
+padding:0;
+}
+</style>
 
-      </MapView>
+</head>
 
-      <View
-        style={[
-          styles.stats,
-          {
-            paddingTop: insets.top + 10,
-          },
-        ]}
-      >
-        <Text style={styles.stat}>
-          {distanceKm.toFixed(2)} km
-        </Text>
+<body>
 
-        <Text style={styles.stat}>
-          {speed} km/h
-        </Text>
-      </View>
+<div id="map"></div>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={
-          isTracking ? stopDrive : startDrive
-        }
-      >
-        <Text style={styles.buttonText}>
-          {isTracking
-            ? "END DRIVE"
-            : "START DRIVE"}
-        </Text>
-      </TouchableOpacity>
 
-    </View>
-  );
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+<script>
+
+const map = L.map('map')
+.setView([0,0],15);
+
+
+L.tileLayer(
+'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+maxZoom:19
+}
+).addTo(map);
+
+
+let marker;
+let line = L.polyline([]).addTo(map);
+
+
+document.addEventListener(
+"message",
+function(event){
+
+const data =
+JSON.parse(event.data);
+
+
+if(data.type==="location"){
+
+map.setView(
+[data.latitude,data.longitude],
+15
+);
+
+
+marker =
+L.marker(
+[data.latitude,data.longitude]
+)
+.addTo(map);
+
 }
 
+
+
+if(data.type==="route"){
+
+const coords =
+data.points.map(
+p=>[
+p.latitude,
+p.longitude
+]
+);
+
+
+line.setLatLngs(coords);
+
+map.fitBounds(
+line.getBounds()
+);
+
+}
+
+});
+
+
+</script>
+
+</body>
+</html>
+`;
+
+
+
+return (
+
+<View style={styles.container}>
+
+
+<WebView
+
+ref={webRef}
+
+originWhitelist={["*"]}
+
+source={{
+html
+}}
+
+javaScriptEnabled
+
+style={styles.map}
+
+/>
+
+
+<View
+style={[
+styles.stats,
+{
+paddingTop:
+insets.top + 10,
+},
+]}
+>
+
+
+<Text style={styles.stat}>
+{distanceKm.toFixed(2)} km
+</Text>
+
+
+<Text style={styles.stat}>
+{speed} km/h
+</Text>
+
+
+</View>
+
+
+
+<TouchableOpacity
+
+style={styles.button}
+
+onPress={
+isTracking
+? stopDrive
+: startDrive
+}
+
+>
+
+<Text style={styles.buttonText}>
+
+{
+isTracking
+? "END DRIVE"
+: "START DRIVE"
+}
+
+</Text>
+
+</TouchableOpacity>
+
+
+</View>
+
+);
+
+}
+
+
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
 
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+container:{
+flex:1,
+backgroundColor:
+colors.background,
+},
 
-  text: {
-    color: colors.text,
-  },
 
-  stats: {
-    position: "absolute",
-    top: 0,
-    width: "100%",
-    alignItems: "center",
-  },
+map:{
+flex:1,
+},
 
-  stat: {
-    color: colors.primary,
-    fontSize: 22,
-    fontWeight: "bold",
-  },
 
-  button: {
-    position: "absolute",
-    bottom: 50,
-    alignSelf: "center",
-    backgroundColor: colors.primary,
-    padding: spacing.lg,
-    borderRadius: 15,
-  },
+stats:{
+position:"absolute",
+top:0,
+width:"100%",
+alignItems:"center",
+},
 
-  buttonText: {
-    color: "#000",
-    fontWeight: "900",
-  },
+
+stat:{
+color:colors.primary,
+fontSize:22,
+fontWeight:"bold",
+},
+
+
+button:{
+position:"absolute",
+bottom:50,
+alignSelf:"center",
+backgroundColor:
+colors.primary,
+padding:spacing.lg,
+borderRadius:15,
+},
+
+
+buttonText:{
+color:"#000",
+fontWeight:"900",
+},
+
 });
