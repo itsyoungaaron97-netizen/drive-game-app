@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -26,7 +27,12 @@ import {
   increment,
 } from "firebase/firestore";
 
-import { UserProfile, Trip, LeaderboardEntry } from "../types";
+import {
+  UserProfile,
+  Trip,
+  LeaderboardEntry,
+} from "../types";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyDutwZoAo-LvAeXq5btSj7VQHlPpsLoYTg",
@@ -37,23 +43,33 @@ const firebaseConfig = {
   appId: "1:797436193798:web:5fb3efbd47ebcc3cd76787",
 };
 
+
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+
+// REGISTER
 
 export async function registerWithEmail(
   email: string,
   password: string,
   displayName: string
 ): Promise<User> {
-  const cred = await createUserWithEmailAndPassword(
-    auth,
-    email,
-    password
+
+  const cred =
+    await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+  await updateProfile(
+    cred.user,
+    { displayName }
   );
 
-  await updateProfile(cred.user, { displayName });
 
   const profile: UserProfile = {
     uid: cred.user.uid,
@@ -66,107 +82,231 @@ export async function registerWithEmail(
     lastActiveAt: Date.now(),
   };
 
-  await setDoc(doc(db, "users", cred.user.uid), profile);
+
+  await setDoc(
+    doc(db, "users", cred.user.uid),
+    profile
+  );
+
 
   return cred.user;
 }
+
+
+// LOGIN
 
 export async function loginWithEmail(
   email: string,
   password: string
 ) {
-  return signInWithEmailAndPassword(auth, email, password);
+  return signInWithEmailAndPassword(
+    auth,
+    email,
+    password
+  );
 }
+
+
+// LOGOUT
 
 export async function logout() {
   return signOut(auth);
 }
 
+
+// AUTH LISTENER
+
 export function subscribeToAuth(
   callback: (user: User | null) => void
 ) {
-  return onAuthStateChanged(auth, callback);
+  return onAuthStateChanged(
+    auth,
+    callback
+  );
 }
+
+
+// GET USER PROFILE
 
 export async function getUserProfile(
   uid: string
 ): Promise<UserProfile | null> {
-  const snap = await getDoc(doc(db, "users", uid));
+
+  const snap =
+    await getDoc(
+      doc(db, "users", uid)
+    );
+
 
   return snap.exists()
     ? (snap.data() as UserProfile)
     : null;
 }
 
+
+// UPDATE USER STATS
+
 export async function updateUserStats(
   uid: string,
   distanceKm: number,
   maxSpeedKmh: number
 ) {
-  const ref = doc(db, "users", uid);
+
+  const ref =
+    doc(db, "users", uid);
+
+
+  const snap =
+    await getDoc(ref);
+
+
+  const oldMaxSpeed =
+    snap.exists()
+      ? snap.data().maxSpeed || 0
+      : 0;
+
 
   await updateDoc(ref, {
-    totalKm: increment(distanceKm),
-    totalTrips: increment(1),
-    maxSpeed: maxSpeedKmh,
-    lastActiveAt: Date.now(),
+
+    totalKm:
+      increment(distanceKm),
+
+    totalTrips:
+      increment(1),
+
+    maxSpeed:
+      Math.max(
+        oldMaxSpeed,
+        maxSpeedKmh
+      ),
+
+    lastActiveAt:
+      Date.now(),
   });
 }
+
+
+// SAVE TRIP
 
 export async function saveTrip(
   trip: Omit<Trip, "id">
 ): Promise<string> {
-  const ref = await addDoc(collection(db, "trips"), {
-    ...trip,
-    createdAt: serverTimestamp(),
-  });
+
+  const ref =
+    await addDoc(
+      collection(db, "trips"),
+      {
+        ...trip,
+        createdAt:
+          serverTimestamp(),
+      }
+    );
+
 
   return ref.id;
 }
+
+
+// GET USER TRIPS
 
 export async function getUserTrips(
   uid: string,
   max = 20
 ): Promise<Trip[]> {
-  const q = query(
-    collection(db, "trips"),
-    where("userId", "==", uid),
-    orderBy("startedAt", "desc"),
-    limit(max)
-  );
 
-  const snap = await getDocs(q);
+
+  const q =
+    query(
+      collection(db, "trips"),
+      where(
+        "userId",
+        "==",
+        uid
+      ),
+      orderBy(
+        "startedAt",
+        "desc"
+      ),
+      limit(max)
+    );
+
+
+  const snap =
+    await getDocs(q);
+
 
   return snap.docs.map((d) => ({
     id: d.id,
     ...d.data(),
   } as Trip));
+
 }
 
+
+// LEADERBOARD
+
 export async function getLeaderboard(
-  scope: "global" | "country" | "state" | "city",
+  scope:
+    | "global"
+    | "country"
+    | "state"
+    | "city",
+
   placeName?: string,
+
   max = 50
+
 ): Promise<LeaderboardEntry[]> {
-  const q = query(
-    collection(db, "users"),
-    orderBy("totalKm", "desc"),
-    limit(max)
+
+
+  const q =
+    query(
+      collection(db, "users"),
+      orderBy(
+        "totalKm",
+        "desc"
+      ),
+      limit(max)
+    );
+
+
+  const snap =
+    await getDocs(q);
+
+
+  return snap.docs.map(
+    (d, i) => {
+
+      const data =
+        d.data() as UserProfile;
+
+
+      return {
+
+        uid:
+          data.uid,
+
+        displayName:
+          data.displayName,
+
+        photoURL:
+          data.photoURL,
+
+        totalKm:
+          data.totalKm,
+
+        totalTrips:
+          data.totalTrips,
+
+        maxSpeed:
+          data.maxSpeed,
+
+        rank:
+          i + 1,
+
+      };
+
+    }
   );
 
-  const snap = await getDocs(q);
-
-  return snap.docs.map((d, i) => {
-    const data = d.data() as UserProfile;
-
-    return {
-      uid: data.uid,
-      displayName: data.displayName,
-      photoURL: data.photoURL,
-      totalKm: data.totalKm,
-      totalTrips: data.totalTrips,
-      maxSpeed: data.maxSpeed,
-      rank: i + 1,
-    };
-  });
 }
