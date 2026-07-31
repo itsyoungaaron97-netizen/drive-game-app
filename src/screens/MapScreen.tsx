@@ -36,16 +36,16 @@ import { colors, spacing } from "../constants/theme";
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+
   const mapRef = useRef<MapView>(null);
   const watchSub = useRef<any>(null);
+  const startTime = useRef(0);
 
   const [isTracking, setIsTracking] = useState(false);
   const [points, setPoints] = useState<TripPoint[]>([]);
   const [distanceKm, setDistanceKm] = useState(0);
   const [speed, setSpeed] = useState(0);
   const [region, setRegion] = useState<Region | null>(null);
-
-  const startTime = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -97,7 +97,7 @@ export default function MapScreen() {
         return updated;
       });
 
-      if (point.speed) {
+      if (point.speed !== null && point.speed !== undefined) {
         setSpeed(
           Math.round(point.speed * 3.6)
         );
@@ -190,14 +190,17 @@ export default function MapScreen() {
         ref={mapRef}
         style={StyleSheet.absoluteFill}
         region={region}
+        mapType="none"
         showsUserLocation
-        followsUserLocation={false}
+        followsUserLocation={isTracking}
+        onMapReady={() => {
+          console.log("MAP READY");
+        }}
       >
 
         <UrlTile
           urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           maximumZ={19}
-          zIndex={-1}
         />
 
         {points.length > 1 && (
@@ -216,7 +219,9 @@ export default function MapScreen() {
       <View
         style={[
           styles.stats,
-          { paddingTop: insets.top + 10 },
+          {
+            paddingTop: insets.top + 10,
+          },
         ]}
       >
         <Text style={styles.stat}>
