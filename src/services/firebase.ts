@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
 
 import {
-  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -9,6 +10,8 @@ import {
   updateProfile,
   User,
 } from "firebase/auth";
+
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   getFirestore,
@@ -46,7 +49,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+export const auth = initializeAuth(
+  app,
+  {
+    persistence:
+      getReactNativePersistence(
+        ReactNativeAsyncStorage
+      ),
+  }
+);
+
 export const db = getFirestore(app);
 
 
@@ -282,28 +294,13 @@ export async function getLeaderboard(
 
 
       return {
-
-        uid:
-          data.uid,
-
-        displayName:
-          data.displayName,
-
-        photoURL:
-          data.photoURL,
-
-        totalKm:
-          data.totalKm,
-
-        totalTrips:
-          data.totalTrips,
-
-        maxSpeed:
-          data.maxSpeed,
-
-        rank:
-          i + 1,
-
+        uid: data.uid,
+        displayName: data.displayName,
+        photoURL: data.photoURL,
+        totalKm: data.totalKm,
+        totalTrips: data.totalTrips,
+        maxSpeed: data.maxSpeed,
+        rank: i + 1,
       };
 
     }
