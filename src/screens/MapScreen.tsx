@@ -9,7 +9,7 @@ import {
 
 import MapView, {
   Polyline,
-  PROVIDER_GOOGLE,
+  UrlTile,
   Region,
 } from "react-native-maps";
 
@@ -187,11 +187,16 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
         initialRegion={region}
         showsUserLocation
         followsUserLocation={isTracking}
       >
+
+        <UrlTile
+          urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maximumZ={19}
+        />
+
         {points.length > 1 && (
           <Polyline
             coordinates={points.map((p) => ({
@@ -202,6 +207,7 @@ export default function MapScreen() {
             strokeWidth={5}
           />
         )}
+
       </MapView>
 
       <View
