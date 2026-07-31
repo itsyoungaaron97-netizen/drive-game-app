@@ -61,6 +61,8 @@ export default function MapScreen() {
 
       const pos = await getCurrentPosition();
 
+      console.log("POSITION:", pos);
+
       if (pos) {
         setRegion({
           latitude: pos.coords.latitude,
@@ -187,14 +189,15 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        initialRegion={region}
+        region={region}
         showsUserLocation
-        followsUserLocation={isTracking}
+        followsUserLocation={false}
       >
 
         <UrlTile
           urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           maximumZ={19}
+          zIndex={-1}
         />
 
         {points.length > 1 && (
