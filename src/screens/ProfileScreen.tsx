@@ -8,23 +8,19 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import {
   logout,
   getUserProfile,
   getUserTrips,
   auth,
 } from "../services/firebase";
-
 import { UserProfile, Trip } from "../types";
 import { colors, spacing } from "../constants/theme";
 import { format } from "date-fns";
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,18 +30,13 @@ export default function ProfileScreen() {
     if (!user) return;
 
     (async () => {
-      try {
-        const [p, t] = await Promise.all([
-          getUserProfile(user.uid),
-          getUserTrips(user.uid, 10),
-        ]);
-        setProfile(p);
-        setTrips(t);
-      } catch (e) {
-        console.log(e);
-      } finally {
-        setLoading(false);
-      }
+      const [p, t] = await Promise.all([
+        getUserProfile(user.uid),
+        getUserTrips(user.uid, 10),
+      ]);
+      setProfile(p);
+      setTrips(t);
+      setLoading(false);
     })();
   }, []);
 
@@ -55,15 +46,15 @@ export default function ProfileScreen() {
       {
         text: "Log out",
         style: "destructive",
-        onPress: logout,
+        onPress: () => logout(),
       },
     ]);
   };
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} size="large" />
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }
@@ -80,60 +71,63 @@ export default function ProfileScreen() {
       <Text style={styles.title}>Profile</Text>
 
       <View style={styles.card}>
-        <Text style={styles.name}>
-          {profile?.displayName || "Driver"}
-        </Text>
+        <Text style={styles.name}>{profile?.displayName || "Driver"}</Text>
         <Text style={styles.email}>{profile?.email}</Text>
 
-        <Text style={styles.stat}>
-          Total km: {(profile?.totalKm || 0).toFixed(1)}
-        </Text>
-        <Text style={styles.stat}>
-          Trips: {profile?.totalTrips || 0}
-        </Text>
-        <Text style={styles.stat}>
-          Max speed: {profile?.maxSpeed || 0} km/h
-        </Text>
+        {/* XP + Level */}
+        <View style={styles.xpBox}>
+          <Text style={styles.level}>Level {profile?.level || 1}</Text>
+          <Text style={styles.xp}>{profile?.totalXP || 0} XP</Text>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>
+              {(profile?.totalKm || 0).toFixed(1)}
+            </Text>
+            <Text style={styles.statLabel}>Total km</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{profile?.totalTrips || 0}</Text>
+            <Text style={styles.statLabel}>Trips</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{profile?.maxSpeed || 0}</Text>
+            <Text style={styles.statLabel}>Max km/h</Text>
+          </View>
+        </View>
       </View>
 
-      <Text style={styles.section}>Recent Drives</Text>
-
+      <Text style={styles.sectionTitle}>Recent Drives</Text>
       {trips.length === 0 ? (
-        <Text style={styles.empty}>No drives yet. Go drive!</Text>
+        <Text style={styles.empty}>No trips yet. Hit START DRIVE!</Text>
       ) : (
         trips.map((trip) => (
-          <View key={trip.id} style={styles.trip}>
-            <Text style={styles.tripTitle}>
+          <View key={trip.id} style={styles.tripCard}>
+            <Text style={styles.tripDistance}>
               {trip.distanceKm.toFixed(2)} km
             </Text>
-            <Text style={styles.text}>
-              {trip.city || "Unknown"} • max {trip.maxSpeedKmh} km/h
+            <Text style={styles.tripMeta}>
+              {trip.city || "Unknown"}, {trip.country || ""} • max{" "}
+              {trip.maxSpeedKmh} km/h
             </Text>
-            <Text style={styles.date}>
-              {format(new Date(trip.startedAt), "MMM d yyyy HH:mm")}
+            <Text style={styles.tripDate}>
+              {format(new Date(trip.startedAt), "MMM d, yyyy • HH:mm")}
             </Text>
           </View>
         ))
       )}
 
-      <TouchableOpacity style={styles.logout} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Log out</Text>
+      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Log Out</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.background,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { justifyContent: "center", alignItems: "center" },
   title: {
     color: colors.text,
     fontSize: 28,
@@ -149,60 +143,84 @@ const styles = StyleSheet.create({
   name: {
     color: colors.text,
     fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 4,
+    fontWeight: "800",
   },
   email: {
     color: colors.textSecondary,
+    marginTop: 4,
     marginBottom: spacing.md,
   },
-  stat: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
+  xpBox: {
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 12,
+    padding: spacing.md,
+    alignItems: "center",
+    marginBottom: spacing.md,
   },
-  section: {
+  level: {
+    color: colors.primary,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  xp: {
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  stat: { alignItems: "center" },
+  statValue: {
+    color: colors.primary,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  statLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sectionTitle: {
     color: colors.text,
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
-  trip: {
+  empty: {
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  tripCard: {
     backgroundColor: colors.surface,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  tripTitle: {
+  tripDistance: {
     color: colors.primary,
-    fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "800",
+    fontSize: 16,
   },
-  text: {
-    color: colors.textSecondary,
+  tripMeta: {
+    color: colors.text,
     marginTop: 2,
   },
-  date: {
+  tripDate: {
     color: colors.textSecondary,
     fontSize: 12,
     marginTop: 4,
   },
-  empty: {
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginTop: spacing.md,
-  },
-  logout: {
-    backgroundColor: colors.danger,
-    padding: spacing.md,
-    borderRadius: 12,
-    alignItems: "center",
+  logoutBtn: {
     marginTop: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 12,
+    padding: spacing.md,
+    alignItems: "center",
   },
   logoutText: {
-    color: "#fff",
+    color: colors.danger,
     fontWeight: "700",
-    fontSize: 16,
   },
 });
