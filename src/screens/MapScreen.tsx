@@ -39,44 +39,49 @@ import { TripPoint } from "../types";
 import { colors } from "../constants/theme";
 
 
+
 // =====================================
 // TYPES
 // =====================================
 
 type LocationPoint = {
-  latitude: number;
-  longitude: number;
+  latitude:number;
+  longitude:number;
 };
 
 
 type RoadReport = {
-  id: string;
+
+  id:string;
 
   type:
-    | "traffic"
-    | "police"
-    | "crash";
+  | "traffic"
+  | "police"
+  | "crash";
 
-  latitude: number;
+  latitude:number;
 
-  longitude: number;
+  longitude:number;
 
-  user: string;
+  user:string;
 
-  time: string;
+  time:string;
+
 };
 
 
 
+
 // =====================================
-// ADDRESS SEARCH
+// SEARCH ADDRESS
 // =====================================
 
 async function searchAddress(
-  address: string
-) {
+  address:string
+){
 
-  try {
+  try{
+
 
     const response =
       await fetch(
@@ -84,52 +89,62 @@ async function searchAddress(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
 
         {
-          headers: {
+          headers:{
             "User-Agent":
-              "DriveGame-App",
+            "DriveGame-App",
           },
         }
 
       );
 
 
+
     const data =
       await response.json();
 
 
-    if (!data?.length) {
 
+    if(!data?.length)
       return null;
 
-    }
 
 
     return {
 
       latitude:
-        Number(data[0].lat),
+      Number(data[0].lat),
+
 
       longitude:
-        Number(data[0].lon),
+      Number(data[0].lon),
+
 
       name:
-        data[0].display_name,
+      data[0].display_name,
 
     };
 
 
-  } catch(error) {
+
+  }catch(error){
+
 
     console.log(
       "Search error",
       error
     );
 
+
     return null;
+
 
   }
 
+
 }
+
+
+
 
 
 
@@ -139,17 +154,19 @@ async function searchAddress(
 
 async function getRoute(
 
-  start: LocationPoint,
+  start:LocationPoint,
 
-  end: LocationPoint
+  end:LocationPoint
 
-) {
+){
 
-  try {
+
+  try{
+
 
     const url =
 
-      `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
+    `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
 
 
 
@@ -163,48 +180,53 @@ async function getRoute(
 
 
 
-    if (!data.routes?.length) {
-
+    if(!data.routes?.length)
       return [];
-
-    }
 
 
 
     return (
 
       data.routes[0]
-        .geometry
-        .coordinates
-        .map(
+      .geometry
+      .coordinates
+      .map(
 
-          (point: number[]) => ({
+        (point:number[])=>({
 
-            latitude:
-              point[1],
+          latitude:
+          point[1],
 
-            longitude:
-              point[0],
+          longitude:
+          point[0],
 
-          })
+        })
 
-        )
+      )
 
     );
 
 
-  } catch(error) {
+
+  }catch(error){
+
 
     console.log(
       "Route error",
       error
     );
 
+
     return [];
+
 
   }
 
+
 }
+
+
+
 
 
 
@@ -212,320 +234,334 @@ async function getRoute(
 // SCREEN
 // =====================================
 
-export default function MapScreen() {
+export default function MapScreen(){
 
 
-  const insets =
-    useSafeAreaInsets();
+const insets =
+useSafeAreaInsets();
 
 
-  const webRef =
-    useRef<WebView>(null);
 
+const webRef =
+useRef<any>(null);
 
-  const watchRef =
-    useRef<any>(null);
 
 
-  const webReady =
-    useRef(false);
+const watchRef =
+useRef<any>(null);
 
 
-  const messageQueue =
-    useRef<any[]>([]);
 
+const webReady =
+useRef(false);
 
-  const startTime =
-    useRef(0);
 
 
-  const latestPoints =
-    useRef<TripPoint[]>([]);
+const messageQueue =
+useRef<any[]>([]);
 
 
-  const latestDistance =
-    useRef(0);
 
+const startTime =
+useRef(0);
 
-  const latestLocation =
-    useRef<LocationPoint | null>(null);
 
 
+const latestPoints =
+useRef<TripPoint[]>([]);
 
-  const [
-    loading,
-    setLoading
-  ] =
-  useState(true);
 
 
+const latestDistance =
+useRef(0);
 
-  const [
-    location,
-    setLocation
-  ] =
-  useState<LocationPoint | null>(null);
 
 
+const latestLocation =
+useRef<LocationPoint|null>(null);
 
-  const [
-    search,
-    setSearch
-  ] =
-  useState("");
 
 
 
-  const [
-    distanceKm,
-    setDistanceKm
-  ] =
-  useState(0);
 
+const [
+loading,
+setLoading
+]=useState(true);
 
 
-  const [
-    speed,
-    setSpeed
-  ] =
-  useState(0);
 
+const [
+location,
+setLocation
+]=useState<LocationPoint|null>(null);
 
 
-  const [
-    tracking,
-    setTracking
-  ] =
-  useState(false);
 
+const [
+search,
+setSearch
+]=useState("");
 
 
-  const [
-    feed,
-    setFeed
-  ] =
-  useState<RoadReport[]>([]);
 
+const [
+distanceKm,
+setDistanceKm
+]=useState(0);
 
 
-  const [
-    selectedReportLocation,
-    setSelectedReportLocation
-  ] =
-  useState<LocationPoint | null>(null);
 
+const [
+speed,
+setSpeed
+]=useState(0);
 
 
 
-  // =====================================
-  // SEND DATA TO WEBVIEW SAFELY
-  // =====================================
+const [
+tracking,
+setTracking
+]=useState(false);
 
-  const sendToMap =
-    useCallback(
 
-      (data:any)=>{
 
+const [
+feed,
+setFeed
+]=useState<RoadReport[]>([]);
 
-        if(webReady.current) {
 
 
-          webRef.current?.postMessage(
+const [
+selectedReportLocation,
+setSelectedReportLocation
+]=useState<LocationPoint|null>(null);
 
-            JSON.stringify(data)
 
-          );
 
 
-        } else {
 
 
-          messageQueue.current.push(data);
+// =====================================
+// SEND DATA TO MAP
+// =====================================
 
+const sendToMap =
+useCallback(
 
-        }
+(data:any)=>{
 
 
-      },
+if(webReady.current){
 
-      []
 
-    );
+webRef.current?.postMessage(
 
+JSON.stringify(data)
 
+);
 
-  const flushMessages =
-    ()=>{
 
+}else{
 
-      if(!webReady.current)
-        return;
 
+messageQueue.current.push(data);
 
 
-      messageQueue.current.forEach(
+}
 
-        item=>{
 
 
-          webRef.current?.postMessage(
+},
 
-            JSON.stringify(item)
+[]
 
-          );
 
+);
 
-        }
 
-      );
 
 
 
-      messageQueue.current = [];
 
+const flushMessages = ()=>{
 
-    };// =====================================
+
+if(!webReady.current)
+return;
+
+
+
+messageQueue.current.forEach(
+
+(message)=>{
+
+
+webRef.current?.postMessage(
+
+JSON.stringify(message)
+
+);
+
+
+}
+
+
+);
+
+
+
+messageQueue.current=[];
+
+
+};
+
+
+
+
+
+// =====================================
 // LOAD LOCATION
 // =====================================
 
 useEffect(()=>{
 
 
-  const loadLocation =
-  async()=>{
+const loadLocation =
+async()=>{
 
 
-    try{
+try{
 
 
-      const permission =
-        await requestLocationPermissions();
+const permission =
+await requestLocationPermissions();
 
 
 
-      if(!permission){
+if(!permission){
 
 
-        Alert.alert(
+Alert.alert(
 
-          "Location required",
+"Location required",
 
-          "Enable location permission"
+"Enable location permission"
 
-        );
+);
 
 
-        return;
+return;
 
 
-      }
+}
 
 
 
 
-      const position =
-        await getCurrentPosition();
 
+const position =
+await getCurrentPosition();
 
 
 
-      if(position){
 
+if(position){
 
-        const current = {
 
-          latitude:
-            position.coords.latitude,
+const current={
 
-          longitude:
-            position.coords.longitude,
 
-        };
+latitude:
+position.coords.latitude,
 
 
+longitude:
+position.coords.longitude,
 
-        latestLocation.current =
-          current;
 
+};
 
 
-        setLocation(current);
 
+latestLocation.current =
+current;
 
 
-        sendToMap({
 
-          type:"location",
+setLocation(current);
 
-          ...current,
 
-        });
 
 
+sendToMap({
 
-      }
+type:"location",
 
+...current,
 
+});
 
-    }catch(error){
 
 
-      console.log(
+}
 
-        "Location error",
 
-        error
 
-      );
+}catch(error){
 
 
+console.log(
 
-    }finally{
+"Location error",
 
+error
 
-      setLoading(false);
+);
 
 
-    }
 
+}finally{
 
 
-  };
+setLoading(false);
 
 
+}
 
 
-  loadLocation();
 
+};
 
 
 
-  return()=>{
 
+loadLocation();
 
-    if(watchRef.current){
 
 
-      watchRef.current.remove();
 
+return()=>{
 
-      watchRef.current=null;
 
+if(watchRef.current){
 
-    }
 
+watchRef.current.remove();
 
-  };
 
+watchRef.current=null;
 
 
-},[sendToMap]);
+}
 
 
 
+};
 
 
-// =====================================
+},[]);// =====================================
 // SEARCH DESTINATION
 // =====================================
 
@@ -533,69 +569,69 @@ const handleSearch =
 async()=>{
 
 
-  if(!search.trim())
-    return;
+if(!search.trim())
+return;
 
 
 
-  const result =
-    await searchAddress(search);
+const result =
+await searchAddress(search);
 
 
 
-  if(!result){
+if(!result){
 
 
-    Alert.alert(
+Alert.alert(
 
-      "Not found",
+"Not found",
 
-      "Destination unavailable"
+"Destination unavailable"
 
-    );
-
-
-    return;
+);
 
 
-  }
+return;
 
 
-
-
-  const current =
-    latestLocation.current;
+}
 
 
 
-  if(!current)
-    return;
+const current =
+latestLocation.current;
 
 
 
-  const route =
-    await getRoute(
-
-      current,
-
-      result
-
-    );
+if(!current)
+return;
 
 
 
+const route =
+await getRoute(
 
-  sendToMap({
+current,
 
-    type:"route",
+result
 
-    points:route,
+);
 
-  });
 
+
+sendToMap({
+
+type:"route",
+
+points:route,
+
+});
 
 
 };
+
+
+
 
 
 
@@ -609,102 +645,102 @@ const startDrive =
 useCallback(async()=>{
 
 
-  latestPoints.current=[];
+latestPoints.current=[];
 
-
-  latestDistance.current=0;
-
-
-
-  setDistanceKm(0);
-
-  setSpeed(0);
+latestDistance.current=0;
 
 
 
-  startTime.current =
-    Date.now();
+setDistanceKm(0);
+
+setSpeed(0);
 
 
 
-  setTracking(true);
+startTime.current =
+Date.now();
 
 
 
-
-  watchRef.current =
-
-    await watchPosition(
-
-      (point)=>{
-
-
-        latestPoints.current = [
-
-          ...latestPoints.current,
-
-          point,
-
-        ];
+setTracking(true);
 
 
 
 
-        latestDistance.current =
 
-          calculateDistanceKm(
+watchRef.current =
 
-            latestPoints.current
+await watchPosition(
 
-          );
-
+(point)=>{
 
 
+latestPoints.current = [
 
-        setDistanceKm(
+...latestPoints.current,
 
-          latestDistance.current
+point,
 
-        );
-
-
-
-        setSpeed(
-
-          Math.round(
-
-            (point.speed || 0)
-            *
-            3.6
-
-          )
-
-        );
+];
 
 
 
+latestDistance.current =
 
-        sendToMap({
+calculateDistanceKm(
 
-          type:"location",
+latestPoints.current
 
-          latitude:
-            point.latitude,
-
-          longitude:
-            point.longitude,
-
-        });
+);
 
 
 
-      }
+setDistanceKm(
 
-    );
+latestDistance.current
+
+);
 
 
 
-},[sendToMap]);
+
+setSpeed(
+
+Math.round(
+
+(point.speed || 0)
+*
+3.6
+
+)
+
+);
+
+
+
+sendToMap({
+
+type:"location",
+
+latitude:
+point.latitude,
+
+longitude:
+point.longitude,
+
+});
+
+
+
+}
+
+);
+
+
+
+},[]);
+
+
 
 
 
@@ -720,296 +756,312 @@ const stopDrive =
 async()=>{
 
 
-  if(watchRef.current){
+if(watchRef.current){
 
 
-    watchRef.current.remove();
+watchRef.current.remove();
 
 
-    watchRef.current=null;
+watchRef.current=null;
 
 
-  }
+}
 
 
 
-  setTracking(false);
+setTracking(false);
 
 
 
 
-  const savedPoints =
-    latestPoints.current;
 
+const savedPoints =
+latestPoints.current;
 
 
-  if(savedPoints.length < 2){
 
+if(savedPoints.length < 2){
 
-    Alert.alert(
 
-      "Drive too short",
+Alert.alert(
 
-      "Drive longer before saving"
+"Drive too short",
 
-    );
+"Drive longer before saving"
 
+);
 
-    return;
 
+return;
 
-  }
 
+}
 
 
 
-  const endedAt =
-    Date.now();
 
 
 
+const endedAt =
+Date.now();
 
-  const duration =
 
-    Math.round(
 
-      (
 
-        endedAt -
-        startTime.current
 
-      )
+const duration =
+Math.round(
 
-      /
+(
 
-      1000
+endedAt -
 
-    );
+startTime.current
 
+)
 
+/1000
 
+);
 
 
-  const maxSpeed =
 
-    calculateMaxSpeedKmh(
 
-      savedPoints
 
-    );
 
+const maxSpeed =
 
+calculateMaxSpeedKmh(
 
+savedPoints
 
+);
 
-  const avgSpeed =
 
-    calculateAvgSpeedKmh(
 
-      latestDistance.current,
 
-      duration
 
-    );
 
+const avgSpeed =
 
+calculateAvgSpeedKmh(
 
+latestDistance.current,
 
+duration
 
-  const user =
-    auth.currentUser;
+);
 
 
 
-  if(!user)
-    return;
 
 
 
+const user =
+auth.currentUser;
 
 
-  let place:any = {};
 
+if(!user)
+return;
 
 
 
-  try{
 
 
-    place =
 
-      await reverseGeocode(
 
-        savedPoints[0].latitude,
+let place:any={};
 
-        savedPoints[0].longitude
 
-      )
-      || {};
 
+try{
 
 
-  }catch(error){
+place =
 
+await reverseGeocode(
 
-    console.log(
+savedPoints[0].latitude,
 
-      "Reverse geocode error",
+savedPoints[0].longitude
 
-      error
+)
 
-    );
+||{};
 
 
-  }
 
+}catch(error){
 
 
+console.log(
 
+"Reverse geocode error",
 
+error
 
-  try{
+);
 
 
-    await saveTrip({
+}
 
-      userId:
-        user.uid,
 
 
-      userDisplayName:
 
-        user.displayName ||
-        "Driver",
 
 
 
-      startedAt:
+try{
 
-        startTime.current,
 
+await saveTrip({
 
 
-      endedAt,
+userId:
 
+user.uid,
 
 
-      distanceKm:
 
-        latestDistance.current,
+userDisplayName:
 
+user.displayName ||
+"Driver",
 
 
-      durationSeconds:
 
-        duration,
+startedAt:
 
+startTime.current,
 
 
-      avgSpeedKmh:
 
-        avgSpeed,
+endedAt,
 
 
 
-      maxSpeedKmh:
+distanceKm:
 
-        maxSpeed,
+latestDistance.current,
 
 
 
-      route:
+durationSeconds:
 
-        savedPoints,
+duration,
 
 
 
-      city:
+avgSpeedKmh:
 
-        place.city || "",
+avgSpeed,
 
 
 
-      state:
+maxSpeedKmh:
 
-        place.state || "",
+maxSpeed,
 
 
 
-      country:
+route:
 
-        place.country || "",
+savedPoints,
 
 
-    });
 
+city:
 
+place.city || "",
 
 
 
+state:
 
-    const result =
+place.state || "",
 
-      await updateUserStats(
 
-        user.uid,
 
-        latestDistance.current,
+country:
 
-        maxSpeed
+place.country || "",
 
-      );
 
+});
 
 
 
 
-    Alert.alert(
 
-      "Drive Saved",
 
-      `${latestDistance.current.toFixed(2)} km\n+${result.xpGained} XP`
 
-    );
+const result =
 
+await updateUserStats(
 
+user.uid,
 
+latestDistance.current,
 
+maxSpeed
 
-  }catch(error:any){
+);
 
 
 
-    Alert.alert(
 
-      "Save failed",
 
-      error.message ||
-      "Unknown error"
+Alert.alert(
 
-    );
+"Drive Saved",
 
+`${latestDistance.current.toFixed(2)} km\n+${result.xpGained} XP`
 
-  }
+);
 
 
 
 
 
-  latestPoints.current=[];
+}catch(error:any){
 
 
-  latestDistance.current=0;
 
+Alert.alert(
 
+"Save failed",
 
-  setDistanceKm(0);
+error.message ||
 
-  setSpeed(0);
+"Unknown error"
+
+);
+
+
+
+}
+
+
+
+
+
+latestPoints.current=[];
+
+latestDistance.current=0;
+
+
+
+setDistanceKm(0);
+
+setSpeed(0);
 
 
 
 };
+
+
+
 
 
 
@@ -1021,98 +1073,99 @@ async()=>{
 
 const createReport =
 (
-  type:
-  "traffic"
-  |
-  "police"
-  |
-  "crash"
+type:
+"traffic"
+|
+"police"
+|
+"crash"
 )=>{
 
 
-  const target =
+const target =
 
-    selectedReportLocation ||
+selectedReportLocation ||
 
-    location;
-
-
-
-
-  if(!target)
-    return;
+location;
 
 
 
-
-  const report:RoadReport = {
-
-
-    id:
-
-      Date.now().toString(),
-
-
-
-    type,
-
-
-
-    latitude:
-
-      target.latitude,
-
-
-
-    longitude:
-
-      target.longitude,
-
-
-
-    user:
-
-      auth.currentUser?.displayName ||
-
-      "Driver",
-
-
-
-    time:
-
-      "now",
-
-
-  };
-
-
-
-
-  setFeed(old=>[
-
-    report,
-
-    ...old,
-
-  ]);
+if(!target)
+return;
 
 
 
 
 
-  sendToMap({
+const report:RoadReport={
 
-    type:"report",
 
-    report,
+id:
 
-  });
-
+Date.now().toString(),
 
 
 
-  setSelectedReportLocation(null);
+type,
 
+
+
+latitude:
+
+target.latitude,
+
+
+
+longitude:
+
+target.longitude,
+
+
+
+user:
+
+auth.currentUser?.displayName ||
+
+"Driver",
+
+
+
+time:
+
+"now",
+
+
+};
+
+
+
+
+
+setFeed(old=>[
+
+report,
+
+...old,
+
+]);
+
+
+
+
+
+sendToMap({
+
+type:"report",
+
+report,
+
+});
+
+
+
+
+
+setSelectedReportLocation(null);
 
 
 };
@@ -1122,70 +1175,80 @@ const createReport =
 
 
 
-const showReportMenu =
-()=>{
+
+const showReportMenu = ()=>{
 
 
-  Alert.alert(
+Alert.alert(
 
-    "Road report",
+"Road report",
 
-    "Select event",
+"Select event",
 
-    [
-
-
-      {
-
-        text:"🚗 Traffic",
-
-        onPress:
-
-          ()=>createReport("traffic"),
-
-      },
+[
 
 
+{
 
-      {
+text:"🚗 Traffic",
 
-        text:"🚓 Police",
+onPress:
 
-        onPress:
+()=>createReport("traffic"),
 
-          ()=>createReport("police"),
-
-      },
+},
 
 
 
-      {
+{
 
-        text:"💥 Crash",
+text:"🚓 Police",
 
-        onPress:
+onPress:
 
-          ()=>createReport("crash"),
+()=>createReport("police"),
 
-      },
-
-
-      {
-
-        text:"Cancel",
-
-        style:"cancel",
-
-      },
+},
 
 
-    ]
 
-  );
+{
+
+text:"💥 Crash",
+
+onPress:
+
+()=>createReport("crash"),
+
+},
 
 
-};// =====================================
-// LEAFLET WEBVIEW MAP
+
+{
+
+text:"Cancel",
+
+style:"cancel",
+
+},
+
+
+]
+
+
+);
+
+
+};
+
+
+
+
+
+
+
+// =====================================
+// LEAFLET MAP HTML
 // =====================================
 
 const html = `
@@ -1217,6 +1280,7 @@ padding:0;
 
 </style>
 
+
 </head>
 
 
@@ -1229,7 +1293,6 @@ padding:0;
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 
-
 <script>
 
 
@@ -1237,7 +1300,7 @@ const map =
 
 L.map("map")
 
-.setView([0,0],15);
+.setView([41.0,14.3],15);
 
 
 
@@ -1254,6 +1317,14 @@ attribution:"OpenStreetMap"
 }
 
 ).addTo(map);
+
+
+
+setTimeout(()=>{
+
+map.invalidateSize();
+
+},1000);
 
 
 
@@ -1283,13 +1354,7 @@ let reports =
 
 L.layerGroup()
 
-.addTo(map);
-
-
-
-
-
-const carIcon =
+.addTo(map);const carIcon =
 
 L.divIcon({
 
@@ -1300,7 +1365,6 @@ className:"",
 iconSize:[40,40]
 
 });
-
 
 
 
@@ -1336,7 +1400,8 @@ longitude:e.latlng.lng
 
 
 
-window.addEventListener(
+
+document.addEventListener(
 
 "message",
 
@@ -1349,6 +1414,7 @@ try{
 const data =
 
 JSON.parse(event.data);
+
 
 
 
@@ -1406,6 +1472,8 @@ icon:carIcon
 
 
 
+
+
 if(data.type==="route"){
 
 
@@ -1430,7 +1498,7 @@ routeLine.setLatLngs(coords);
 
 
 
-if(coords.length>1){
+if(coords.length>1)
 
 map.fitBounds(
 
@@ -1438,10 +1506,11 @@ routeLine.getBounds()
 
 );
 
-}
 
 
 }
+
+
 
 
 
@@ -1451,9 +1520,7 @@ if(data.type==="report"){
 
 
 
-const r=
-
-data.report;
+const r=data.report;
 
 
 
@@ -1464,8 +1531,10 @@ let icon="⚠️";
 if(r.type==="traffic")
 icon="🚗";
 
+
 if(r.type==="police")
 icon="🚓";
+
 
 if(r.type==="crash")
 icon="💥";
@@ -1499,6 +1568,7 @@ icon+" "+r.type
 
 
 
+
 }catch(e){
 
 console.log(e);
@@ -1510,6 +1580,7 @@ console.log(e);
 
 
 );
+
 
 
 </script>
@@ -1525,8 +1596,10 @@ console.log(e);
 
 
 
+
+
 // =====================================
-// MAP MESSAGE FROM WEBVIEW
+// WEBVIEW MESSAGE
 // =====================================
 
 const handleMapMessage =
@@ -1543,7 +1616,6 @@ JSON.parse(
 event.nativeEvent.data
 
 );
-
 
 
 
@@ -1587,7 +1659,9 @@ style:"cancel",
 
 }
 
+
 ]
+
 
 );
 
@@ -1612,8 +1686,9 @@ error
 }
 
 
-
 };
+
+
 
 
 
@@ -1651,10 +1726,13 @@ Loading map...
 
 </View>
 
+
 );
 
 
 }
+
+
 
 
 
@@ -1692,7 +1770,15 @@ onLoad={()=>{
 webReady.current=true;
 
 
+
+setTimeout(()=>{
+
+
 flushMessages();
+
+
+},500);
+
 
 
 }}
@@ -1706,7 +1792,6 @@ style={styles.map}
 
 
 />
-
 
 
 
@@ -1729,9 +1814,8 @@ insets.top+10
 
 ]
 
-}
 
->
+}>
 
 
 <TextInput
@@ -1793,9 +1877,8 @@ insets.top+80
 
 ]
 
-}
 
->
+}>
 
 
 <Text style={styles.stat}>
@@ -1829,6 +1912,7 @@ insets.top+80
 🌍 Live Feed
 
 </Text>
+
 
 
 
@@ -1941,12 +2025,16 @@ tracking
 
 
 
+
 </View>
 
 );
 
 
 }
+
+
+
 
 
 
