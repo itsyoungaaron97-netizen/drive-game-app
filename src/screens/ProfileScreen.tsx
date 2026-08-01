@@ -477,7 +477,7 @@ export default function ProfileScreen(){
               <Text style={styles.carDetails}>
 
                 {
-                  profile.selectedCar.year
+                  profile.selectedCar.years
                 }
 
               </Text>
