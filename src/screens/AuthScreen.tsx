@@ -62,6 +62,10 @@ export default function AuthScreen() {
     useState("");
 
 
+  const [birthDate,setBirthDate] =
+    useState("");
+
+
   const [loading,setLoading] =
     useState(false);
 
@@ -90,7 +94,6 @@ export default function AuthScreen() {
 
 
 
-
     if(!isLogin){
 
 
@@ -110,12 +113,13 @@ export default function AuthScreen() {
       if(
         !nationality.trim() ||
         !country.trim() ||
-        !city.trim()
+        !city.trim() ||
+        !birthDate.trim()
       ){
 
         Alert.alert(
           "Error",
-          "Nationality, country and city are required"
+          "Nationality, country, city and birth date are required"
         );
 
         return;
@@ -171,6 +175,9 @@ export default function AuthScreen() {
 
             city:
               city.trim(),
+
+            birthDate:
+              birthDate.trim(),
 
           }
 
@@ -326,6 +333,22 @@ placeholderTextColor={colors.textSecondary}
 value={city}
 
 onChangeText={setCity}
+
+/>
+
+
+
+<TextInput
+
+style={styles.input}
+
+placeholder="Birth date (YYYY-MM-DD)"
+
+placeholderTextColor={colors.textSecondary}
+
+value={birthDate}
+
+onChangeText={setBirthDate}
 
 />
 
