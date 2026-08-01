@@ -43,7 +43,6 @@ import {
 
 import {
   colors,
-  spacing,
 } from "../constants/theme";
 
 
@@ -498,21 +497,28 @@ await watchPosition(
 setPoints(old=>{
 
 
-const updated = [
+const updated=[
+
 ...old,
+
 point
+
 ];
 
 
+
 setDistanceKm(
+
 calculateDistanceKm(updated)
+
 );
+
 
 
 return updated;
 
-
 });
+
 
 
 setSpeed(
@@ -520,7 +526,9 @@ setSpeed(
 Math.round(
 
 (point.speed || 0)
+
 *
+
 3.6
 
 )
@@ -553,13 +561,7 @@ point.longitude,
 
 
 
-},[]);
-
-
-
-
-
-// ===============================
+},[]);// ===============================
 // STOP DRIVE
 // ===============================
 
@@ -570,7 +572,7 @@ async()=>{
 
 watchRef.current?.remove();
 
-watchRef.current=null;
+watchRef.current = null;
 
 
 setTracking(false);
@@ -580,7 +582,7 @@ setTracking(false);
 if(points.length < 2){
 
 Alert.alert(
-"Drive too short",
+"Too short",
 "Drive longer before saving"
 );
 
@@ -598,12 +600,9 @@ Date.now();
 
 const duration =
 Math.round(
-
-(endedAt-startTime.current)
+(endedAt - startTime.current)
 /1000
-
 );
-
 
 
 
@@ -614,13 +613,9 @@ calculateMaxSpeedKmh(points);
 
 const avgSpeed =
 calculateAvgSpeedKmh(
-
 distanceKm,
-
 duration
-
 );
-
 
 
 
@@ -631,7 +626,6 @@ auth.currentUser;
 
 if(!user)
 return;
-
 
 
 
@@ -692,7 +686,7 @@ place.country,
 
 
 
-const result =
+const xp =
 await updateUserStats(
 
 user.uid,
@@ -709,7 +703,7 @@ Alert.alert(
 
 "Drive Saved",
 
-`${distanceKm.toFixed(2)} km\n+${result.xpGained} XP\nLevel ${result.newLevel}`
+`${distanceKm.toFixed(2)} km\n+${xp.xpGained} XP\nLevel ${xp.newLevel}`
 
 );
 
@@ -719,13 +713,16 @@ Alert.alert(
 
 catch(error:any){
 
+
 Alert.alert(
 
 "Error",
 
-error.message || "Could not save drive"
+error.message ||
+"Could not save drive"
 
 );
+
 
 }
 
@@ -744,13 +741,22 @@ setSpeed(0);
 
 
 
+
+
 // ===============================
-// REPORT ROAD EVENT
+// TAP MAP ROAD REPORT
 // ===============================
 
 
-const reportRoad =
-(type:"traffic"|"police"|"crash")=>{
+const createReport =
+(type:
+"traffic"
+|
+"police"
+|
+"crash"
+)=>
+{
 
 
 if(!location)
@@ -758,7 +764,7 @@ return;
 
 
 
-const newReport:RoadReport={
+const report:RoadReport = {
 
 
 id:
@@ -777,7 +783,9 @@ location.longitude,
 
 
 user:
-auth.currentUser?.displayName || "Driver",
+auth.currentUser?.displayName
+||
+"Driver",
 
 
 time:
@@ -788,14 +796,15 @@ time:
 
 
 
+
+
 setFeed(old=>[
 
-newReport,
+report,
 
-...old,
+...old
 
 ]);
-
 
 
 
@@ -806,7 +815,7 @@ JSON.stringify({
 
 type:"report",
 
-report:newReport,
+report,
 
 })
 
@@ -818,7 +827,23 @@ Alert.alert(
 
 "Report sent",
 
-`Reported ${type}`
+type === "traffic"
+
+?
+
+"🚗 Traffic reported"
+
+:
+
+type === "police"
+
+?
+
+"🚓 Police reported"
+
+:
+
+"💥 Crash reported"
 
 );
 
@@ -829,6 +854,93 @@ Alert.alert(
 
 
 
+
+// ===============================
+// REPORT MENU
+// ===============================
+
+
+const showReportMenu =
+()=>{
+
+
+Alert.alert(
+
+"Report road event",
+
+"Choose what is happening",
+
+[
+
+{
+
+text:"🚗 Traffic",
+
+onPress:()=>createReport("traffic")
+
+},
+
+
+{
+
+text:"🚓 Police",
+
+onPress:()=>createReport("police")
+
+},
+
+
+{
+
+text:"💥 Crash",
+
+onPress:()=>createReport("crash")
+
+},
+
+
+{
+
+text:"Cancel",
+
+style:"cancel"
+
+}
+
+]
+
+);
+
+
+};
+
+
+
+
+
+// ===============================
+// SEND ROUTE TO MAP
+// ===============================
+
+
+const sendRouteData =
+()=>{
+
+
+webRef.current?.postMessage(
+
+JSON.stringify({
+
+type:"route",
+
+points:route,
+
+})
+
+);
+
+
+};
 // ===============================
 // MAP HTML
 // ===============================
@@ -845,9 +957,7 @@ const html = `
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link rel="stylesheet"
-
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
 
 <style>
 
@@ -857,37 +967,35 @@ height:100%;
 
 margin:0;
 
+padding:0;
+
 }
 
 </style>
-
 
 </head>
 
 
 <body>
 
-
 <div id="map"></div>
 
 
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 
 
 <script>
 
 
 const map =
-L.map('map')
+L.map("map")
 .setView([0,0],15);
 
 
 
 L.tileLayer(
 
-'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+"https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 
 {
 
@@ -900,17 +1008,14 @@ maxZoom:19
 
 
 
-
-let marker=null;
-
+let marker = null;
 
 
 let routeLine =
-L.polyline(
-
-[],
-
+L.polyline([],
 {
+
+color:"#00ff99",
 
 weight:5
 
@@ -920,15 +1025,20 @@ weight:5
 
 
 
+let reports =
+L.layerGroup()
+.addTo(map);
 
-let reports=[];
 
 
+
+
+// MAP TAP REPORT LOCATION
 
 
 map.on(
 
-'click',
+"click",
 
 function(e){
 
@@ -937,7 +1047,7 @@ window.ReactNativeWebView.postMessage(
 
 JSON.stringify({
 
-type:"mapPress",
+type:"mapClick",
 
 latitude:e.latlng.lat,
 
@@ -946,6 +1056,7 @@ longitude:e.latlng.lng
 })
 
 );
+
 
 
 }
@@ -1011,8 +1122,8 @@ L.marker(pos)
 
 
 
-
 if(data.type==="route"){
+
 
 
 const coords =
@@ -1038,9 +1149,7 @@ routeLine.setLatLngs(coords);
 if(coords.length>1)
 
 map.fitBounds(
-
 routeLine.getBounds()
-
 );
 
 
@@ -1051,21 +1160,34 @@ routeLine.getBounds()
 
 
 
-
 if(data.type==="report"){
 
 
 
-let icon =
-"⚠️";
+const r =
+data.report;
 
 
 
-if(data.report.type==="police")
+let icon = "⚠️";
+
+
+
+if(r.type==="traffic")
+
+icon="🚗";
+
+
+if(r.type==="police")
+
 icon="🚓";
 
-if(data.report.type==="crash")
+
+if(r.type==="crash")
+
 icon="💥";
+
+
 
 
 
@@ -1073,27 +1195,32 @@ L.marker(
 
 [
 
-data.report.latitude,
+r.latitude,
 
-data.report.longitude
+r.longitude
 
 ],
 
 {
 
-title:data.report.type
+title:r.type
 
 }
 
 )
 
-.addTo(map)
+.addTo(reports)
 
-.bindPopup(icon+" "+data.report.type);
+.bindPopup(
+
+icon+" "+r.type
+
+);
 
 
 
 }
+
 
 
 
@@ -1106,13 +1233,154 @@ title:data.report.type
 
 </script>
 
-
 </body>
 
 </html>
 
 `;
-id="58391"
+
+
+
+
+
+
+// ===============================
+// WEBVIEW MESSAGE HANDLER
+// ===============================
+
+
+const handleMapMessage =
+(event:any)=>{
+
+
+const data =
+JSON.parse(
+
+event.nativeEvent.data
+
+);
+
+
+
+if(data.type==="mapClick"){
+
+
+
+const fakeLocation={
+
+latitude:data.latitude,
+
+longitude:data.longitude,
+
+};
+
+
+
+Alert.alert(
+
+"Report location",
+
+"Report this point?",
+
+[
+
+{
+
+text:"Traffic",
+
+onPress:()=>{
+
+
+setFeed(old=>[
+
+{
+
+id:Date.now().toString(),
+
+type:"traffic",
+
+latitude:data.latitude,
+
+longitude:data.longitude,
+
+user:
+auth.currentUser?.displayName || "Driver",
+
+time:"now",
+
+},
+
+...old
+
+]);
+
+
+webRef.current?.postMessage(
+
+JSON.stringify({
+
+type:"report",
+
+report:{
+
+...fakeLocation,
+
+type:"traffic"
+
+}
+
+})
+
+);
+
+
+}
+
+},
+
+
+{
+
+text:"Police",
+
+onPress:()=>createReport("police")
+
+},
+
+
+{
+
+text:"Crash",
+
+onPress:()=>createReport("crash")
+
+},
+
+
+{
+
+text:"Cancel",
+
+style:"cancel"
+
+}
+
+]
+
+);
+
+
+}
+
+
+
+};
+
+
+
+
+
+
 return (
 
 <View style={styles.container}>
@@ -1122,79 +1390,22 @@ return (
 
 ref={webRef}
 
-originWhitelist={["*"]}
-
 source={{
+
 html
+
 }}
+
+originWhitelist={["*"]}
 
 javaScriptEnabled
 
-onMessage={(event)=>{
-
-
-const data =
-JSON.parse(event.nativeEvent.data);
-
-
-
-if(data.type==="mapPress"){
-
-
-Alert.alert(
-
-"Report road",
-
-"Choose what to report",
-
-[
-
-{
-
-text:"🚗 Traffic",
-
-onPress:()=>reportRoad("traffic"),
-
-},
-
-{
-
-text:"🚓 Police",
-
-onPress:()=>reportRoad("police"),
-
-},
-
-{
-
-text:"💥 Crash",
-
-onPress:()=>reportRoad("crash"),
-
-},
-
-{
-
-text:"Cancel",
-
-style:"cancel",
-
-},
-
-]
-
-);
-
-
-
-}
-
-
-}}
+onMessage={handleMapMessage}
 
 style={styles.map}
 
 />
+
 
 
 
@@ -1212,7 +1423,6 @@ styles.searchBox,
 {
 
 top:
-
 insets.top + 10
 
 }
@@ -1224,15 +1434,15 @@ insets.top + 10
 
 <TextInput
 
-style={styles.input}
-
-placeholder="Search destination..."
-
-placeholderTextColor="#999"
-
 value={search}
 
 onChangeText={setSearch}
+
+placeholder="Search destination"
+
+placeholderTextColor="#aaa"
+
+style={styles.input}
 
 />
 
@@ -1246,14 +1456,15 @@ onPress={handleSearch}
 
 >
 
+
 <Text style={styles.searchText}>
 
 GO
 
 </Text>
 
-</TouchableOpacity>
 
+</TouchableOpacity>
 
 
 </View>
@@ -1276,7 +1487,6 @@ styles.feed,
 {
 
 top:
-
 insets.top + 75
 
 }
@@ -1298,10 +1508,8 @@ insets.top + 75
 
 data={feed}
 
-keyExtractor={(item)=>
-
-item.id
-
+keyExtractor={
+item=>item.id
 }
 
 renderItem={({item})=>(
@@ -1319,30 +1527,17 @@ renderItem={({item})=>(
 
 <Text style={styles.feedMessage}>
 
-{
-
-item.type==="traffic"
-
+{item.type==="traffic"
 ?
-
-"🚗 Traffic reported"
-
+"🚗 Traffic"
 :
-
 item.type==="police"
-
 ?
-
-"🚓 Police reported"
-
+"🚓 Police"
 :
-
-"💥 Crash reported"
-
-}
+"💥 Crash"}
 
 </Text>
-
 
 
 <Text style={styles.feedTime}>
@@ -1370,8 +1565,7 @@ item.type==="police"
 
 
 
-
-{/* STATS */}
+{/* SPEED */}
 
 
 <View
@@ -1383,7 +1577,6 @@ styles.stats,
 {
 
 top:
-
 insets.top + 260
 
 }
@@ -1398,7 +1591,6 @@ insets.top + 260
 {distanceKm.toFixed(2)} km
 
 </Text>
-
 
 
 <Text style={styles.stat}>
@@ -1416,95 +1608,26 @@ insets.top + 260
 
 
 
-
-{/* REPORT BUTTONS */}
-
-
-<View
-
-style={[
-
-styles.reportButtons,
-
-{
-
-bottom:110
-
-}
-
-]}
-
->
+{/* REPORT BUTTON */}
 
 
 <TouchableOpacity
 
 style={styles.reportButton}
 
-onPress={()=>
-
-reportRoad("traffic")
-
-}
+onPress={showReportMenu}
 
 >
 
-<Text>
 
-🚗
+<Text style={styles.reportText}>
 
-</Text>
-
-</TouchableOpacity>
-
-
-
-<TouchableOpacity
-
-style={styles.reportButton}
-
-onPress={()=>
-
-reportRoad("police")
-
-}
-
->
-
-<Text>
-
-🚓
+⚠️ REPORT
 
 </Text>
 
-</TouchableOpacity>
-
-
-
-<TouchableOpacity
-
-style={styles.reportButton}
-
-onPress={()=>
-
-reportRoad("crash")
-
-}
-
->
-
-<Text>
-
-💥
-
-</Text>
 
 </TouchableOpacity>
-
-
-
-</View>
-
 
 
 
@@ -1521,7 +1644,8 @@ style={[
 
 styles.driveButton,
 
-tracking && styles.stopButton
+tracking &&
+styles.stopButton
 
 ]}
 
@@ -1564,7 +1688,6 @@ tracking
 </TouchableOpacity>
 
 
-
 </View>
 
 );
@@ -1576,9 +1699,8 @@ tracking
 
 
 
-const styles =
-StyleSheet.create({
 
+const styles = StyleSheet.create({
 
 container:{
 
@@ -1637,7 +1759,7 @@ searchButton:{
 
 backgroundColor:colors.primary,
 
-paddingHorizontal:18,
+paddingHorizontal:15,
 
 paddingVertical:10,
 
@@ -1655,15 +1777,13 @@ fontWeight:"900",
 },
 
 
-
-
 feed:{
 
 position:"absolute",
 
 left:10,
 
-width:270,
+width:260,
 
 maxHeight:180,
 
@@ -1709,8 +1829,6 @@ feedMessage:{
 
 color:"#ddd",
 
-fontSize:12,
-
 },
 
 
@@ -1721,7 +1839,6 @@ color:"#888",
 fontSize:11,
 
 },
-
 
 
 stats:{
@@ -1746,38 +1863,32 @@ fontWeight:"900",
 },
 
 
-
-
-reportButtons:{
+reportButton:{
 
 position:"absolute",
 
 right:15,
 
-flexDirection:"row",
+bottom:130,
 
-gap:10,
+backgroundColor:"#ffcc00",
 
-},
+paddingHorizontal:18,
 
+paddingVertical:12,
 
-reportButton:{
-
-backgroundColor:"#111",
-
-width:45,
-
-height:45,
-
-borderRadius:25,
-
-alignItems:"center",
-
-justifyContent:"center",
+borderRadius:15,
 
 },
 
 
+reportText:{
+
+color:"#000",
+
+fontWeight:"900",
+
+},
 
 
 driveButton:{
@@ -1790,9 +1901,9 @@ alignSelf:"center",
 
 backgroundColor:colors.primary,
 
-paddingHorizontal:40,
+padding:18,
 
-paddingVertical:18,
+paddingHorizontal:35,
 
 borderRadius:20,
 
