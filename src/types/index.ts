@@ -10,14 +10,10 @@ export interface OwnedCar {
   ownerId: string;
 
 
-  // Real ownership / VIN system
-
   vinHash?: string;
 
   verifiedOwnership?: boolean;
 
-
-  // Vehicle information
 
   brand: string;
 
@@ -33,8 +29,6 @@ export interface OwnedCar {
 
   mileage?: number;
 
-
-  // Future 3D garage system
 
   model3D?: string;
 
@@ -72,8 +66,6 @@ export interface UserProfile {
   level: number;
 
 
-  // Future economy system
-
   coins?: number;
 
 
@@ -82,8 +74,6 @@ export interface UserProfile {
   lastActiveAt: number;
 
 
-
-  // ---------- Car System ----------
 
   selectedCar?: Car | OwnedCar;
 
@@ -98,12 +88,11 @@ export interface UserProfile {
   };
 
 
-
-  // Future garage system
-
   garageId?: string;
 
 }
+
+
 
 
 
@@ -119,7 +108,7 @@ export interface Garage {
   name: string;
 
 
-  location?: {
+  location: {
 
     latitude: number;
 
@@ -143,6 +132,122 @@ export interface Garage {
 
 
 
+
+
+// ---------- World Map Objects ----------
+
+export type WorldObjectType =
+
+  | "garage"
+
+  | "house"
+
+  | "building"
+
+  | "mechanic"
+
+  | "business"
+
+  | "custom";
+
+
+
+
+
+export interface WorldObject {
+
+  id: string;
+
+  ownerId?: string;
+
+
+  type: WorldObjectType;
+
+
+  name: string;
+
+
+  description?: string;
+
+
+
+  location: {
+
+    latitude: number;
+
+    longitude: number;
+
+  };
+
+
+
+  model3D?: string;
+
+
+  imageURL?: string;
+
+
+  createdAt: number;
+
+}
+
+
+
+
+
+// ---------- Business System ----------
+
+export interface Business {
+
+  id: string;
+
+  ownerId: string;
+
+
+  name: string;
+
+
+  type:
+
+    | "mechanic"
+
+    | "garage"
+
+    | "dealer"
+
+    | "other";
+
+
+
+  description?: string;
+
+
+
+  location: {
+
+    latitude: number;
+
+    longitude: number;
+
+  };
+
+
+
+  imageURL?: string;
+
+
+  verified?: boolean;
+
+
+  createdAt: number;
+
+}
+
+
+
+
+
+
 // ---------- Trip ----------
 
 export interface TripPoint {
@@ -158,6 +263,7 @@ export interface TripPoint {
   altitude?: number;
 
 }
+
 
 
 
@@ -218,14 +324,12 @@ export interface Trip {
   xpEarned?: number;
 
 
-
-  // Car used during trip
-
   carId?: string;
 
   carName?: string;
 
 }
+
 
 
 
@@ -280,6 +384,106 @@ export interface Report {
 
 
 
+
+
+
+
+// ---------- Community Feed ----------
+
+export interface CommunityPost {
+
+  id: string;
+
+  userId: string;
+
+
+  displayName: string;
+
+  photoURL?: string;
+
+
+  text: string;
+
+
+  imageURL?: string;
+
+
+  location?: {
+
+    latitude: number;
+
+    longitude: number;
+
+  };
+
+
+  likes?: number;
+
+
+  createdAt: number;
+
+}
+
+
+
+
+
+export interface Comment {
+
+  id: string;
+
+
+  postId: string;
+
+
+  userId: string;
+
+
+  displayName: string;
+
+
+  text: string;
+
+
+  createdAt: number;
+
+}
+
+
+
+
+
+// ---------- Messages ----------
+
+export interface Message {
+
+  id: string;
+
+
+  senderId: string;
+
+
+  receiverId: string;
+
+
+  text: string;
+
+
+  imageURL?: string;
+
+
+  createdAt: number;
+
+
+  read?: boolean;
+
+}
+
+
+
+
+
+
 // ---------- Leaderboard ----------
 
 export interface LeaderboardEntry {
@@ -305,6 +509,9 @@ export interface LeaderboardEntry {
   rank?: number;
 
 }
+
+
+
 
 
 
@@ -340,13 +547,17 @@ export interface Lobby {
 
 
 
+
+
 // ---------- Challenges ----------
 
 export interface Challenge {
 
   id: string;
 
+
   title: string;
+
 
   description: string;
 
@@ -366,7 +577,9 @@ export interface Challenge {
 
   target: number;
 
+
   xpReward: number;
+
 
   isDaily: boolean;
 
@@ -380,11 +593,15 @@ export interface UserChallengeProgress {
 
   challengeId: string;
 
+
   progress: number;
+
 
   completed: boolean;
 
+
   claimed: boolean;
+
 
   updatedAt: number;
 
@@ -394,7 +611,9 @@ export interface UserChallengeProgress {
 
 
 
-// ---------- Friends System ----------
+
+
+// ---------- Friends ----------
 
 export interface FriendRequest {
 
@@ -403,10 +622,12 @@ export interface FriendRequest {
 
   fromUid: string;
 
+
   toUid: string;
 
 
   fromDisplayName: string;
+
 
   toDisplayName: string;
 
@@ -430,6 +651,8 @@ export interface FriendRequest {
 
 
 
+
+
 export interface Friend {
 
   uid: string;
@@ -437,20 +660,20 @@ export interface Friend {
 
   displayName: string;
 
-  photoURL?: string;
 
+  photoURL?: string;
 
 
   totalKm: number;
 
-  totalTrips: number;
 
+  totalTrips: number;
 
 
   level: number;
 
-  totalXP: number;
 
+  totalXP: number;
 
 
   addedAt: number;
