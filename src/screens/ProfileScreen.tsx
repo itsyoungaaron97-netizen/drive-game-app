@@ -474,13 +474,10 @@ export default function ProfileScreen(){
 
 
 <Text style={styles.carDetails}>
-
-  {
-    "years" in profile.selectedCar
-      ? profile.selectedCar.years
-      : ""
-  }
-
+  {profile?.selectedCar &&
+  "years" in profile.selectedCar
+    ? profile.selectedCar.years
+    : ""}
 </Text>
               
 
