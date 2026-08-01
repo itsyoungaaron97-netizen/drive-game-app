@@ -116,13 +116,31 @@ export const db =
 // ---------- AUTH ----------
 
 
+export interface RegisterDetails {
+
+  nationality?: string;
+
+  country?: string;
+
+  state?: string;
+
+  city?: string;
+
+  birthDate?: string;
+
+}
+
+
+
 export async function registerWithEmail(
 
   email:string,
 
   password:string,
 
-  displayName:string
+  displayName:string,
+
+  details:RegisterDetails = {}
 
 ):Promise<User>{
 
@@ -179,6 +197,26 @@ export async function registerWithEmail(
       cleanName,
 
 
+    nationality:
+      details.nationality || "",
+
+
+    country:
+      details.country || "",
+
+
+    state:
+      details.state || "",
+
+
+    city:
+      details.city || "",
+
+
+    birthDate:
+      details.birthDate || "",
+
+
     totalKm:
       0,
 
@@ -197,6 +235,10 @@ export async function registerWithEmail(
 
     level:
       1,
+
+
+    coins:
+      0,
 
 
     createdAt:
@@ -291,268 +333,185 @@ export function subscribeToAuth(
 
  );
 
-}
-
-
-
-
-
-
-
-// ---------- PROFILE ----------
-
+}// ---------- PROFILE ----------
 
 
 export async function getUserProfile(
-
- uid:string
-
+  uid:string
 ):Promise<UserProfile|null>{
 
 
- const snap =
-
- await getDoc(
-
-   doc(
-
-     db,
-
-     "users",
-
-     uid
-
-   )
-
- );
+  const snap = await getDoc(
+    doc(
+      db,
+      "users",
+      uid
+    )
+  );
 
 
-
- return snap.exists()
-
- ?
-
- snap.data() as UserProfile
-
- :
-
- null;
-
+  return snap.exists()
+    ? snap.data() as UserProfile
+    : null;
 
 }
-
-
 
 
 
 
 export async function updateSelectedCar(
-
- uid:string,
-
- car:Car
-
+  uid:string,
+  car:Car
 ){
 
 
- await updateDoc(
-
-   doc(
-
-     db,
-
-     "users",
-
-     uid
-
-   ),
-
-   {
-
-     selectedCar:
-       car,
-
-   }
-
- );
-
+  await updateDoc(
+    doc(
+      db,
+      "users",
+      uid
+    ),
+    {
+      selectedCar: car,
+    }
+  );
 
 }
-
 
 
 
 
 export async function updateCarDriven(
-
- uid:string,
-
- car:Car
-
+  uid:string,
+  car:Car
 ){
 
 
- const profile =
-
- await getUserProfile(uid);
-
-
-
- const currentCars =
-
- profile?.carsDriven || {};
+  const profile =
+    await getUserProfile(uid);
 
 
 
- const updatedCars = {
-
-
-   ...currentCars,
-
-
-   [car.id]:
-
-     (currentCars[car.id] || 0) + 1,
-
-
- };
+  const currentCars =
+    profile?.carsDriven || {};
 
 
 
- await updateDoc(
+  const updatedCars = {
 
-   doc(
+    ...currentCars,
 
-     db,
+    [car.id]:
+      (currentCars[car.id] || 0) + 1,
 
-     "users",
-
-     uid
-
-   ),
-
-   {
-
-     carsDriven:
-       updatedCars,
-
-   }
-
- );
+  };
 
 
 
- return updatedCars;
+  await updateDoc(
+    doc(
+      db,
+      "users",
+      uid
+    ),
+    {
+      carsDriven: updatedCars,
+    }
+  );
+
+
+  return updatedCars;
 
 }
+
+
+
+
 // ---------- USER STATS ----------
 
 
 export async function updateUserStats(
 
- uid:string,
+  uid:string,
 
- distanceKm:number,
+  distanceKm:number,
 
- maxSpeedKmh:number
+  maxSpeedKmh:number
 
 ){
 
 
- const xpGained =
-
- calculateTripXP(
-
-   distanceKm,
-
-   maxSpeedKmh
-
- );
+  const xpGained =
+    calculateTripXP(
+      distanceKm,
+      maxSpeedKmh
+    );
 
 
 
- const profile =
-
- await getUserProfile(uid);
-
-
-
- const newXP =
-
- (profile?.totalXP || 0)
-
- + xpGained;
+  const profile =
+    await getUserProfile(uid);
 
 
 
- const newLevel =
-
- getLevelFromXP(newXP);
-
-
-
- await updateDoc(
-
-   doc(
-
-     db,
-
-     "users",
-
-     uid
-
-   ),
-
-   {
-
-
-     totalKm:
-
-       increment(distanceKm),
-
-
-     totalTrips:
-
-       increment(1),
-
-
-     maxSpeed:
-
-       maxSpeedKmh,
-
-
-     totalXP:
-
-       newXP,
-
-
-     level:
-
-       newLevel,
-
-
-     lastActiveAt:
-
-       Date.now(),
-
-   }
-
- );
+  const newXP =
+    (profile?.totalXP || 0)
+    + xpGained;
 
 
 
- return {
+  const newLevel =
+    getLevelFromXP(newXP);
 
-   xpGained,
 
-   newXP,
 
-   newLevel,
+  await updateDoc(
+    doc(
+      db,
+      "users",
+      uid
+    ),
+    {
 
- };
+      totalKm:
+        increment(distanceKm),
+
+
+      totalTrips:
+        increment(1),
+
+
+      maxSpeed:
+        maxSpeedKmh,
+
+
+      totalXP:
+        newXP,
+
+
+      level:
+        newLevel,
+
+
+      lastActiveAt:
+        Date.now(),
+
+    }
+  );
+
+
+
+  return {
+
+    xpGained,
+
+    newXP,
+
+    newLevel,
+
+  };
 
 }
-
 
 
 
@@ -562,47 +521,37 @@ export async function updateUserStats(
 // ---------- TRIPS ----------
 
 
-
 export async function saveTrip(
 
- trip:Omit<Trip,"id">
+  trip:Omit<Trip,"id">
 
 ):Promise<string>{
 
 
+  const ref =
+    await addDoc(
 
- const ref =
+      collection(
+        db,
+        "trips"
+      ),
 
- await addDoc(
+      {
 
-   collection(
+        ...trip,
 
-     db,
+        createdAt:
+          serverTimestamp(),
 
-     "trips"
+      }
 
-   ),
-
-   {
-
-     ...trip,
-
-
-     createdAt:
-
-       serverTimestamp(),
-
-   }
-
- );
+    );
 
 
 
- return ref.id;
+  return ref.id;
 
 }
-
-
 
 
 
@@ -610,210 +559,156 @@ export async function saveTrip(
 
 export async function getUserTrips(
 
- uid:string,
+  uid:string,
 
- max:number = 20
+  max:number = 20
 
 ):Promise<Trip[]>{
 
 
 
- const q =
+  const q =
+    query(
 
- query(
+      collection(
+        db,
+        "trips"
+      ),
 
-   collection(
+      where(
+        "userId",
+        "==",
+        uid
+      ),
 
-     db,
+      orderBy(
+        "startedAt",
+        "desc"
+      ),
 
-     "trips"
+      limit(max)
 
-   ),
-
-
-   where(
-
-     "userId",
-
-     "==",
-
-     uid
-
-   ),
-
-
-   orderBy(
-
-     "startedAt",
-
-     "desc"
-
-   ),
-
-
-   limit(max)
-
- );
+    );
 
 
 
- const snap =
-
- await getDocs(q);
-
-
-
- return snap.docs.map(
-
-   d =>
-
-   ({
-
-     id:d.id,
-
-     ...d.data(),
-
-   } as Trip)
-
- );
-
-}
+  const snap =
+    await getDocs(q);
 
 
 
+  return snap.docs.map(
 
+    d =>
 
+    ({
 
+      id:d.id,
 
+      ...d.data(),
 
-// ---------- LEADERBOARD ----------
+    } as Trip)
 
+  );
+
+}// ---------- LEADERBOARD ----------
 
 
 export async function getLeaderboard(
 
- scope:
+  scope:
+    | "global"
+    | "country"
+    | "state"
+    | "city",
 
- "global"
+  placeName?:string,
 
- | "country"
-
- | "state"
-
- | "city",
-
-
- placeName?:string,
-
-
- max:number = 50
+  max:number = 50
 
 ):Promise<LeaderboardEntry[]>{
 
 
 
- const q =
+  const q =
+    query(
 
- query(
+      collection(
+        db,
+        "users"
+      ),
 
-   collection(
+      orderBy(
+        "totalXP",
+        "desc"
+      ),
 
-     db,
+      limit(max)
 
-     "users"
-
-   ),
-
-
-   orderBy(
-
-     "totalXP",
-
-     "desc"
-
-   ),
-
-
-   limit(max)
-
- );
+    );
 
 
 
- const snap =
-
- await getDocs(q);
-
-
-
- return snap.docs.map(
-
-   (d,i)=>{
-
-
-     const data =
-
-       d.data() as UserProfile;
+  const snap =
+    await getDocs(q);
 
 
 
-     return {
+  return snap.docs.map(
+
+    (d,i)=>{
 
 
-       uid:
-
-         data.uid,
-
-
-       displayName:
-
-         data.displayName,
+      const data =
+        d.data() as UserProfile;
 
 
-       photoURL:
 
-         data.photoURL,
+      return {
 
-
-       totalKm:
-
-         data.totalKm,
+        uid:
+          data.uid,
 
 
-       totalTrips:
-
-         data.totalTrips,
-
-
-       maxSpeed:
-
-         data.maxSpeed,
+        displayName:
+          data.displayName,
 
 
-       totalXP:
-
-         data.totalXP,
-
-
-       level:
-
-         data.level,
+        photoURL:
+          data.photoURL,
 
 
-       rank:
-
-         i + 1,
-
-
-     };
+        totalKm:
+          data.totalKm,
 
 
-   }
+        totalTrips:
+          data.totalTrips,
 
- );
+
+        maxSpeed:
+          data.maxSpeed,
+
+
+        totalXP:
+          data.totalXP,
+
+
+        level:
+          data.level,
+
+
+        rank:
+          i + 1,
+
+      };
+
+
+    }
+
+  );
 
 }
-
 
 
 
@@ -827,39 +722,37 @@ export async function getLeaderboard(
 
 export async function getUserChallengeProgress(
 
- uid:string
+  uid:string
 
 ):Promise<UserChallengeProgress[]>{
 
 
 
- const snap =
+  const snap =
+    await getDocs(
 
- await getDocs(
+      collection(
 
-   collection(
+        db,
 
-     db,
+        "users",
 
-     "users",
+        uid,
 
-     uid,
+        "challenges"
 
-     "challenges"
+      )
 
-   )
-
- );
-
+    );
 
 
- return snap.docs.map(
 
-   d =>
+  return snap.docs.map(
 
+    d =>
       d.data() as UserChallengeProgress
 
- );
+  );
 
 }
 
@@ -871,63 +764,63 @@ export async function getUserChallengeProgress(
 
 export async function updateChallengeProgress(
 
- uid:string,
+  uid:string,
 
- challengeId:string,
+  challengeId:string,
 
- progress:number,
+  progress:number,
 
- completed:boolean
+  completed:boolean
 
 ){
 
 
- await setDoc(
 
-   doc(
+  await setDoc(
 
-     db,
+    doc(
 
-     "users",
+      db,
 
-     uid,
+      "users",
 
-     "challenges",
+      uid,
 
-     challengeId
+      "challenges",
 
-   ),
+      challengeId
 
-   {
+    ),
 
-
-     challengeId,
+    {
 
 
-     progress,
+      challengeId,
 
 
-     completed,
+      progress,
 
 
-     claimed:false,
+      completed,
 
 
-     updatedAt:
-
-       Date.now(),
+      claimed:false,
 
 
-   },
+      updatedAt:
+        Date.now(),
 
 
-   {
+    },
 
-     merge:true,
 
-   }
+    {
 
- );
+      merge:true,
+
+    }
+
+  );
 
 }
 
@@ -939,97 +832,99 @@ export async function updateChallengeProgress(
 
 export async function claimChallengeReward(
 
- uid:string,
+  uid:string,
 
- challengeId:string,
+  challengeId:string,
 
- xpReward:number
+  xpReward:number
 
 ){
 
 
 
- const profile =
-
- await getUserProfile(uid);
-
-
-
- const newXP =
-
- (profile?.totalXP || 0)
-
- + xpReward;
+  const profile =
+    await getUserProfile(uid);
 
 
 
- const newLevel =
-
- getLevelFromXP(newXP);
-
-
-
- await updateDoc(
-
-   doc(
-
-     db,
-
-     "users",
-
-     uid,
-
-     "challenges",
-
-     challengeId
-
-   ),
-
-   {
-
-     claimed:true,
-
-   }
-
- );
+  const newXP =
+    (profile?.totalXP || 0)
+    + xpReward;
 
 
 
- await updateDoc(
-
-   doc(
-
-     db,
-
-     "users",
-
-     uid
-
-   ),
-
-   {
-
-     totalXP:
-
-       newXP,
-
-
-     level:
-
-       newLevel,
-
-   }
-
- );
+  const newLevel =
+    getLevelFromXP(newXP);
 
 
 
- return {
 
-   newXP,
+  await updateDoc(
 
-   newLevel,
+    doc(
 
- };
+      db,
+
+      "users",
+
+      uid,
+
+      "challenges",
+
+      challengeId
+
+    ),
+
+    {
+
+      claimed:true,
+
+    }
+
+  );
+
+
+
+
+
+
+  await updateDoc(
+
+    doc(
+
+      db,
+
+      "users",
+
+      uid
+
+    ),
+
+    {
+
+
+      totalXP:
+        newXP,
+
+
+      level:
+        newLevel,
+
+
+    }
+
+  );
+
+
+
+
+  return {
+
+    newXP,
+
+    newLevel,
+
+  };
+
 
 }
