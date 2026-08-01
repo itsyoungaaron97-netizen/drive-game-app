@@ -13,7 +13,13 @@ import {
 
 import { db } from "./firebase";
 
-import { Friend, FriendRequest, UserProfile } from "../types";
+import {
+  Friend,
+  FriendRequest,
+  UserProfile,
+} from "../types";
+
+import { createNotification } from "./notifications";
 
 
 
@@ -178,6 +184,7 @@ export async function sendFriendRequest(
 
 
 
+
   await addDoc(
 
     collection(
@@ -195,13 +202,29 @@ export async function sendFriendRequest(
 
       toDisplayName,
 
-      status:
-        "pending",
+      status:"pending",
 
-      createdAt:
-        Date.now(),
+      createdAt:Date.now(),
 
     }
+
+  );
+
+
+
+
+
+  // Create notification for receiver
+
+  await createNotification(
+
+    toUid,
+
+    "friend_request",
+
+    "New friend request",
+
+    `${fromDisplayName} sent you a friend request`
 
   );
 
@@ -215,9 +238,9 @@ export async function sendFriendRequest(
 
 export async function getFriendRequests(
 
-  uid: string
+  uid:string
 
-): Promise<FriendRequest[]> {
+):Promise<FriendRequest[]> {
 
 
   const q = query(
@@ -252,13 +275,13 @@ export async function getFriendRequests(
 
     (d) =>
 
-      ({
+    ({
 
-        id:d.id,
+      id:d.id,
 
-        ...d.data(),
+      ...d.data(),
 
-      } as FriendRequest)
+    } as FriendRequest)
 
   );
 
@@ -272,7 +295,7 @@ export async function getFriendRequests(
 
 export async function acceptFriendRequest(
 
-  request: FriendRequest
+  request:FriendRequest
 
 ) {
 
@@ -280,23 +303,19 @@ export async function acceptFriendRequest(
   await updateDoc(
 
     doc(
-
       db,
-
       "friendRequests",
-
       request.id
-
     ),
 
     {
 
-      status:
-        "accepted",
+      status:"accepted",
 
     }
 
   );
+
 
 
 
@@ -318,18 +337,16 @@ export async function acceptFriendRequest(
 
     {
 
-      uid:
-        request.toUid,
+      uid:request.toUid,
 
-      displayName:
-        request.toDisplayName,
+      displayName:request.toDisplayName,
 
-      addedAt:
-        Date.now(),
+      addedAt:Date.now(),
 
     }
 
   );
+
 
 
 
@@ -351,14 +368,11 @@ export async function acceptFriendRequest(
 
     {
 
-      uid:
-        request.fromUid,
+      uid:request.fromUid,
 
-      displayName:
-        request.fromDisplayName,
+      displayName:request.fromDisplayName,
 
-      addedAt:
-        Date.now(),
+      addedAt:Date.now(),
 
     }
 
@@ -408,21 +422,22 @@ export async function getFriends(
 ):Promise<Friend[]> {
 
 
-  const snap = await getDocs(
+  const snap =
+    await getDocs(
 
-    collection(
+      collection(
 
-      db,
+        db,
 
-      "users",
+        "users",
 
-      uid,
+        uid,
 
-      "friends"
+        "friends"
 
-    )
+      )
 
-  );
+    );
 
 
 
@@ -430,13 +445,13 @@ export async function getFriends(
 
     (d) =>
 
-      ({
+    ({
 
-        uid:d.id,
+      uid:d.id,
 
-        ...d.data(),
+      ...d.data(),
 
-      } as Friend)
+    } as Friend)
 
   );
 
