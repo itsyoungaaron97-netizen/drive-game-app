@@ -12,6 +12,7 @@ import {
 
 
 import MapScreen from "../screens/MapScreen";
+import MapLibreTest from "../screens/MapLibreTest";
 import LeaderboardScreen from "../screens/LeaderboardScreen";
 import ChallengesScreen from "../screens/ChallengesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -59,23 +60,23 @@ export default function AppNavigator() {
 
         screenOptions={{
 
-          headerShown: false,
+          headerShown:false,
 
-          tabBarStyle: {
+          tabBarStyle:{
 
-            backgroundColor: colors.surface,
+            backgroundColor:colors.surface,
 
-            borderTopColor: colors.border,
+            borderTopColor:colors.border,
 
-            height: 60,
+            height:60,
 
-            paddingBottom: 8,
+            paddingBottom:8,
 
           },
 
-          tabBarActiveTintColor: colors.primary,
+          tabBarActiveTintColor:colors.primary,
 
-          tabBarInactiveTintColor: colors.textSecondary,
+          tabBarInactiveTintColor:colors.textSecondary,
 
         }}
 
@@ -90,9 +91,9 @@ export default function AppNavigator() {
 
           options={{
 
-            tabBarIcon: ({ color }) => (
+            tabBarIcon:({color})=>(
 
-              <Text style={{ color, fontSize: 20 }}>
+              <Text style={{color,fontSize:20}}>
                 🚗
               </Text>
 
@@ -103,6 +104,26 @@ export default function AppNavigator() {
         />
 
 
+        <Tab.Screen
+
+          name="3D Map Test"
+
+          component={MapLibreTest}
+
+          options={{
+
+            tabBarIcon:({color})=>(
+
+              <Text style={{color,fontSize:20}}>
+                🌍
+              </Text>
+
+            ),
+
+          }}
+
+        />
+
 
         <Tab.Screen
 
@@ -112,9 +133,9 @@ export default function AppNavigator() {
 
           options={{
 
-            tabBarIcon: ({ color }) => (
+            tabBarIcon:({color})=>(
 
-              <Text style={{ color, fontSize: 20 }}>
+              <Text style={{color,fontSize:20}}>
                 👥
               </Text>
 
@@ -125,7 +146,6 @@ export default function AppNavigator() {
         />
 
 
-
         <Tab.Screen
 
           name="Challenges"
@@ -134,9 +154,9 @@ export default function AppNavigator() {
 
           options={{
 
-            tabBarIcon: ({ color }) => (
+            tabBarIcon:({color})=>(
 
-              <Text style={{ color, fontSize: 20 }}>
+              <Text style={{color,fontSize:20}}>
                 🎯
               </Text>
 
@@ -147,7 +167,6 @@ export default function AppNavigator() {
         />
 
 
-
         <Tab.Screen
 
           name="Ranks"
@@ -156,9 +175,9 @@ export default function AppNavigator() {
 
           options={{
 
-            tabBarIcon: ({ color }) => (
+            tabBarIcon:({color})=>(
 
-              <Text style={{ color, fontSize: 20 }}>
+              <Text style={{color,fontSize:20}}>
                 🏆
               </Text>
 
@@ -169,7 +188,6 @@ export default function AppNavigator() {
         />
 
 
-
         <Tab.Screen
 
           name="Garage"
@@ -178,9 +196,9 @@ export default function AppNavigator() {
 
           options={{
 
-            tabBarIcon: ({ color }) => (
+            tabBarIcon:({color})=>(
 
-              <Text style={{ color, fontSize: 20 }}>
+              <Text style={{color,fontSize:20}}>
                 🏎️
               </Text>
 
@@ -191,7 +209,6 @@ export default function AppNavigator() {
         />
 
 
-
         <Tab.Screen
 
           name="Profile"
@@ -200,9 +217,9 @@ export default function AppNavigator() {
 
           options={{
 
-            tabBarIcon: ({ color }) => (
+            tabBarIcon:({color})=>(
 
-              <Text style={{ color, fontSize: 20 }}>
+              <Text style={{color,fontSize:20}}>
                 👤
               </Text>
 
