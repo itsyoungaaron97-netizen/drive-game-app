@@ -1,6 +1,52 @@
 import { Car } from "../data/cars";
 
 
+// ---------- Owned Car System ----------
+
+export interface OwnedCar {
+
+  id: string;
+
+  ownerId: string;
+
+
+  // Real ownership / VIN system
+
+  vinHash?: string;
+
+  verifiedOwnership?: boolean;
+
+
+  // Vehicle information
+
+  brand: string;
+
+  model: string;
+
+  year: number;
+
+  engine?: string;
+
+  horsepower?: number;
+
+  color?: string;
+
+  mileage?: number;
+
+
+  // Future 3D garage system
+
+  model3D?: string;
+
+  imageURL?: string;
+
+
+  createdAt: number;
+
+}
+
+
+
 // ---------- User Profile ----------
 
 export interface UserProfile {
@@ -26,6 +72,11 @@ export interface UserProfile {
   level: number;
 
 
+  // Future economy system
+
+  coins?: number;
+
+
   createdAt: number;
 
   lastActiveAt: number;
@@ -34,7 +85,10 @@ export interface UserProfile {
 
   // ---------- Car System ----------
 
-  selectedCar?: Car;
+  selectedCar?: Car | OwnedCar;
+
+
+  ownedCars?: OwnedCar[];
 
 
   carsDriven?: {
@@ -42,6 +96,48 @@ export interface UserProfile {
     [carId: string]: number;
 
   };
+
+
+
+  // Future garage system
+
+  garageId?: string;
+
+}
+
+
+
+// ---------- Garage System ----------
+
+export interface Garage {
+
+  id: string;
+
+  ownerId: string;
+
+
+  name: string;
+
+
+  location?: {
+
+    latitude: number;
+
+    longitude: number;
+
+  };
+
+
+  level: number;
+
+
+  carIds: string[];
+
+
+  model3D?: string;
+
+
+  createdAt: number;
 
 }
 
@@ -62,6 +158,8 @@ export interface TripPoint {
   altitude?: number;
 
 }
+
+
 
 
 
@@ -92,11 +190,13 @@ export interface Trip {
   route: TripPoint[];
 
 
+
   startCity?: string;
 
   startState?: string;
 
   startCountry?: string;
+
 
 
   endCity?: string;
@@ -106,6 +206,7 @@ export interface Trip {
   endCountry?: string;
 
 
+
   city?: string;
 
   state?: string;
@@ -113,7 +214,9 @@ export interface Trip {
   country?: string;
 
 
+
   xpEarned?: number;
+
 
 
   // Car used during trip
@@ -121,6 +224,57 @@ export interface Trip {
   carId?: string;
 
   carName?: string;
+
+}
+
+
+
+
+
+// ---------- Live Reports ----------
+
+export type ReportType =
+
+  | "traffic"
+
+  | "accident"
+
+  | "police"
+
+  | "hazard"
+
+  | "other";
+
+
+
+
+
+export interface Report {
+
+  id: string;
+
+  userId: string;
+
+
+  type: ReportType;
+
+
+  message: string;
+
+
+  location: {
+
+    latitude: number;
+
+    longitude: number;
+
+  };
+
+
+  imageURL?: string;
+
+
+  createdAt: number;
 
 }
 
@@ -169,6 +323,7 @@ export type LobbyScope =
 
 
 
+
 export interface Lobby {
 
   id: string;
@@ -183,6 +338,8 @@ export interface Lobby {
 
 
 
+
+
 // ---------- Challenges ----------
 
 export interface Challenge {
@@ -192,6 +349,7 @@ export interface Challenge {
   title: string;
 
   description: string;
+
 
 
   type:
@@ -205,6 +363,7 @@ export interface Challenge {
     | "time";
 
 
+
   target: number;
 
   xpReward: number;
@@ -212,6 +371,7 @@ export interface Challenge {
   isDaily: boolean;
 
 }
+
 
 
 
@@ -232,6 +392,8 @@ export interface UserChallengeProgress {
 
 
 
+
+
 // ---------- Friends System ----------
 
 export interface FriendRequest {
@@ -249,6 +411,7 @@ export interface FriendRequest {
   toDisplayName: string;
 
 
+
   status:
 
     | "pending"
@@ -258,9 +421,11 @@ export interface FriendRequest {
     | "declined";
 
 
+
   createdAt: number;
 
 }
+
 
 
 
@@ -275,14 +440,17 @@ export interface Friend {
   photoURL?: string;
 
 
+
   totalKm: number;
 
   totalTrips: number;
 
 
+
   level: number;
 
   totalXP: number;
+
 
 
   addedAt: number;
