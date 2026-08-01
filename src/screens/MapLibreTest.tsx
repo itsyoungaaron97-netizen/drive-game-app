@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
-import { Map, Camera } from "@maplibre/maplibre-react-native";
+import { Map } from "@maplibre/maplibre-react-native";
 
 export default function MapLibreTest() {
   return (
@@ -9,18 +9,8 @@ export default function MapLibreTest() {
       <Map
         style={styles.map}
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
-      >
-
-        <Camera
-          defaultSettings={{
-            zoomLevel: 14,
-            centerCoordinate: [14.2681, 40.8518],
-            pitch: 45,
-            heading: 0,
-          }}
-        />
-
-      </Map>
+        logoEnabled={false}
+      />
 
     </View>
   );
