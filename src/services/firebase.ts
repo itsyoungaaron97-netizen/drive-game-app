@@ -2,7 +2,6 @@ import { initializeApp } from "firebase/app";
 
 import {
   initializeAuth,
-  getReactNativePersistence,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -11,7 +10,6 @@ import {
   User,
 } from "firebase/auth";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   getFirestore,
@@ -52,7 +50,9 @@ import {
 
 
 
-// ---------- Firebase Config ----------
+// =====================================
+// FIREBASE CONFIG
+// =====================================
 
 const firebaseConfig = {
 
@@ -63,7 +63,7 @@ const firebaseConfig = {
     "drivegame-32eb5.firebaseapp.com",
 
   projectId:
-    "drivegame-32eb5",
+    "drive-game-32eb5",
 
   storageBucket:
     "drivegame-32eb5.firebasestorage.app",
@@ -81,27 +81,18 @@ const firebaseConfig = {
 
 
 
+
+// =====================================
+// INITIALIZE
+// =====================================
+
 export const app =
   initializeApp(firebaseConfig);
 
 
 
 export const auth =
-  initializeAuth(
-
-    app,
-
-    {
-
-      persistence:
-
-        getReactNativePersistence(
-          AsyncStorage
-        ),
-
-    }
-
-  );
+  initializeAuth(app);
 
 
 
@@ -112,9 +103,9 @@ export const db =
 
 
 
-
-// ---------- AUTH ----------
-
+// =====================================
+// AUTH TYPES
+// =====================================
 
 export interface RegisterDetails {
 
@@ -131,6 +122,12 @@ export interface RegisterDetails {
 }
 
 
+
+
+
+// =====================================
+// REGISTER
+// =====================================
 
 export async function registerWithEmail(
 
@@ -184,6 +181,7 @@ export async function registerWithEmail(
 
 
   const profile:UserProfile = {
+
 
     uid:
       cred.user.uid,
@@ -252,6 +250,7 @@ export async function registerWithEmail(
     carsDriven:
       {},
 
+
   };
 
 
@@ -282,64 +281,63 @@ export async function registerWithEmail(
 
 
 
+// =====================================
+// LOGIN / LOGOUT
+// =====================================
 
 export async function loginWithEmail(
 
- email:string,
+  email:string,
 
- password:string
+  password:string
 
 ){
 
- return signInWithEmailAndPassword(
 
-   auth,
+  return signInWithEmailAndPassword(
 
-   email.trim().toLowerCase(),
+    auth,
 
-   password
+    email.trim().toLowerCase(),
 
- );
+    password
+
+  );
 
 }
-
-
 
 
 
 
 export async function logout(){
 
- return signOut(auth);
+  return signOut(auth);
 
 }
 
 
 
 
-
-
 export function subscribeToAuth(
 
- callback:(user:User|null)=>void
+  callback:(user:User|null)=>void
 
 ){
 
- return onAuthStateChanged(
 
-   auth,
+  return onAuthStateChanged(
 
-   callback
+    auth,
 
- );
+    callback
+
+  );
 
 }// ---------- PROFILE ----------
 
-
 export async function getUserProfile(
-  uid:string
-):Promise<UserProfile|null>{
-
+  uid: string
+): Promise<UserProfile | null> {
 
   const snap = await getDoc(
     doc(
@@ -350,30 +348,36 @@ export async function getUserProfile(
   );
 
 
-  return snap.exists()
-    ? snap.data() as UserProfile
-    : null;
+  if (!snap.exists()) {
+    return null;
+  }
+
+
+  return snap.data() as UserProfile;
 
 }
 
 
 
 
-export async function updateSelectedCar(
-  uid:string,
-  car:Car
-){
 
+export async function updateSelectedCar(
+  uid: string,
+  car: Car
+) {
 
   await updateDoc(
+
     doc(
       db,
       "users",
       uid
     ),
+
     {
       selectedCar: car,
     }
+
   );
 
 }
@@ -381,10 +385,12 @@ export async function updateSelectedCar(
 
 
 
+
+
 export async function updateCarDriven(
-  uid:string,
-  car:Car
-){
+  uid: string,
+  car: Car
+) {
 
 
   const profile =
@@ -409,14 +415,20 @@ export async function updateCarDriven(
 
 
   await updateDoc(
+
     doc(
       db,
       "users",
       uid
     ),
+
     {
-      carsDriven: updatedCars,
+
+      carsDriven:
+        updatedCars,
+
     }
+
   );
 
 
@@ -427,50 +439,68 @@ export async function updateCarDriven(
 
 
 
+
 // ---------- USER STATS ----------
 
 
 export async function updateUserStats(
 
-  uid:string,
+  uid: string,
 
-  distanceKm:number,
+  distanceKm: number,
 
-  maxSpeedKmh:number
+  maxSpeedKmh: number
 
-){
+) {
 
 
   const xpGained =
+
     calculateTripXP(
+
       distanceKm,
+
       maxSpeedKmh
+
     );
 
 
 
   const profile =
+
     await getUserProfile(uid);
 
 
 
   const newXP =
+
     (profile?.totalXP || 0)
-    + xpGained;
+
+    +
+
+    xpGained;
 
 
 
   const newLevel =
+
     getLevelFromXP(newXP);
 
 
 
+
   await updateDoc(
+
     doc(
+
       db,
+
       "users",
+
       uid
+
     ),
+
     {
 
       totalKm:
@@ -497,7 +527,9 @@ export async function updateUserStats(
         Date.now(),
 
     }
+
   );
+
 
 
 
@@ -517,30 +549,35 @@ export async function updateUserStats(
 
 
 
-
 // ---------- TRIPS ----------
 
 
 export async function saveTrip(
 
-  trip:Omit<Trip,"id">
+  trip: Omit<Trip, "id">
 
-):Promise<string>{
+): Promise<string> {
 
 
   const ref =
+
     await addDoc(
 
       collection(
+
         db,
+
         "trips"
+
       ),
 
       {
 
         ...trip,
 
+
         createdAt:
+
           serverTimestamp(),
 
       }
@@ -557,34 +594,49 @@ export async function saveTrip(
 
 
 
+
 export async function getUserTrips(
 
-  uid:string,
+  uid: string,
 
-  max:number = 20
+  max: number = 20
 
-):Promise<Trip[]>{
+): Promise<Trip[]> {
 
 
 
   const q =
+
     query(
 
       collection(
+
         db,
+
         "trips"
+
       ),
+
 
       where(
+
         "userId",
+
         "==",
+
         uid
+
       ),
 
+
       orderBy(
+
         "startedAt",
+
         "desc"
+
       ),
+
 
       limit(max)
 
@@ -592,8 +644,11 @@ export async function getUserTrips(
 
 
 
+
   const snap =
+
     await getDocs(q);
+
 
 
 
@@ -603,7 +658,7 @@ export async function getUserTrips(
 
     ({
 
-      id:d.id,
+      id: d.id,
 
       ...d.data(),
 
@@ -611,7 +666,8 @@ export async function getUserTrips(
 
   );
 
-}// ---------- LEADERBOARD ----------
+}
+// ---------- LEADERBOARD ----------
 
 
 export async function getLeaderboard(
@@ -622,26 +678,35 @@ export async function getLeaderboard(
     | "state"
     | "city",
 
-  placeName?:string,
+  placeName?: string,
 
-  max:number = 50
+  max: number = 50
 
-):Promise<LeaderboardEntry[]>{
+): Promise<LeaderboardEntry[]> {
 
 
 
   const q =
+
     query(
 
       collection(
+
         db,
+
         "users"
+
       ),
 
+
       orderBy(
+
         "totalXP",
+
         "desc"
+
       ),
+
 
       limit(max)
 
@@ -649,57 +714,81 @@ export async function getLeaderboard(
 
 
 
+
   const snap =
+
     await getDocs(q);
+
 
 
 
   return snap.docs.map(
 
-    (d,i)=>{
+    (d, index) => {
 
 
       const data =
+
         d.data() as UserProfile;
+
 
 
 
       return {
 
+
         uid:
+
           data.uid,
 
 
+
         displayName:
+
           data.displayName,
 
 
+
         photoURL:
-          data.photoURL,
+
+          data.photoURL || "",
+
 
 
         totalKm:
-          data.totalKm,
+
+          data.totalKm || 0,
+
 
 
         totalTrips:
-          data.totalTrips,
+
+          data.totalTrips || 0,
+
 
 
         maxSpeed:
-          data.maxSpeed,
+
+          data.maxSpeed || 0,
+
 
 
         totalXP:
-          data.totalXP,
+
+          data.totalXP || 0,
+
 
 
         level:
-          data.level,
+
+          data.level || 1,
+
 
 
         rank:
-          i + 1,
+
+          index + 1,
+
 
       };
 
@@ -714,21 +803,19 @@ export async function getLeaderboard(
 
 
 
-
-
 // ---------- CHALLENGES ----------
 
 
 
 export async function getUserChallengeProgress(
 
-  uid:string
+  uid: string
 
-):Promise<UserChallengeProgress[]>{
-
+): Promise<UserChallengeProgress[]> {
 
 
   const snap =
+
     await getDocs(
 
       collection(
@@ -747,12 +834,15 @@ export async function getUserChallengeProgress(
 
 
 
+
   return snap.docs.map(
 
     d =>
+
       d.data() as UserChallengeProgress
 
   );
+
 
 }
 
@@ -761,18 +851,17 @@ export async function getUserChallengeProgress(
 
 
 
-
 export async function updateChallengeProgress(
 
-  uid:string,
+  uid: string,
 
-  challengeId:string,
+  challengeId: string,
 
-  progress:number,
+  progress: number,
 
-  completed:boolean
+  completed: boolean
 
-){
+) {
 
 
 
@@ -792,6 +881,7 @@ export async function updateChallengeProgress(
 
     ),
 
+
     {
 
 
@@ -808,6 +898,7 @@ export async function updateChallengeProgress(
 
 
       updatedAt:
+
         Date.now(),
 
 
@@ -816,11 +907,14 @@ export async function updateChallengeProgress(
 
     {
 
+
       merge:true,
+
 
     }
 
   );
+
 
 }
 
@@ -838,23 +932,29 @@ export async function claimChallengeReward(
 
   xpReward:number
 
-){
-
+) {
 
 
   const profile =
+
     await getUserProfile(uid);
 
 
 
   const newXP =
+
     (profile?.totalXP || 0)
-    + xpReward;
+
+    +
+
+    xpReward;
 
 
 
   const newLevel =
+
     getLevelFromXP(newXP);
+
 
 
 
@@ -877,7 +977,9 @@ export async function claimChallengeReward(
 
     {
 
+
       claimed:true,
+
 
     }
 
@@ -904,11 +1006,18 @@ export async function claimChallengeReward(
 
 
       totalXP:
+
         newXP,
 
 
       level:
+
         newLevel,
+
+
+      lastActiveAt:
+
+        Date.now(),
 
 
     }
@@ -918,11 +1027,15 @@ export async function claimChallengeReward(
 
 
 
+
   return {
+
 
     newXP,
 
+
     newLevel,
+
 
   };
 
