@@ -198,19 +198,19 @@ export default function GarageScreen() {
 
 
 
-          {selectedCar.image && (
+{"image" in selectedCar && selectedCar.image && (
 
-            <Image
+  <Image
 
-              source={selectedCar.image}
+    source={selectedCar.image}
 
-              style={styles.selectedImage}
+    style={styles.selectedImage}
 
-              resizeMode="contain"
+    resizeMode="contain"
 
-            />
+  />
 
-          )}
+)}
 
 
 
