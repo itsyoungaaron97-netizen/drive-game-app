@@ -25,9 +25,7 @@ import {
   auth,
 } from "../services/firebase";
 
-import {
-  cars,
-} from "../data/cars";
+
 
 import {
   UserProfile,
