@@ -213,7 +213,6 @@ export default function GarageScreen() {
 )}
 
 
-
           <Text style={styles.selectedCar}>
 
             {selectedCar.brand} {selectedCar.model}
