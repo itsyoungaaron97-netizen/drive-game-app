@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+
 import {
   initializeAuth,
   getReactNativePersistence,
@@ -9,6 +10,7 @@ import {
   updateProfile,
   User,
 } from "firebase/auth";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
@@ -38,31 +40,36 @@ import {
 import {
   getLevelFromXP,
   calculateTripXP,
-  CHALLENGES,
 } from "../constants/challenges";
 
 
-// ⚠️ Replace with your real Firebase config
+// Firebase configuration
+
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDutwZoAo-LvAeXq5btSj7VQHlPpsLoYTg",
+  authDomain: "drivegame-32eb5.firebaseapp.com",
+  projectId: "drivegame-32eb5",
+  storageBucket: "drivegame-32eb5.firebasestorage.app",
+  messagingSenderId: "797436193798",
+  appId: "1:797436193798:web:5fb3efbd47ebcc3cd76787",
+  measurementId: "G-Y9RBVH01PY",
 };
 
 
 const app = initializeApp(firebaseConfig);
 
 
-// Firebase Auth with persistent storage
+// Firebase Auth with persistent login storage
+
 export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
+  persistence: getReactNativePersistence(
+    AsyncStorage
+  ),
 });
 
 
 export const db = getFirestore(app);
+
 
 
 // ---------- Auth ----------
@@ -73,28 +80,44 @@ export async function registerWithEmail(
   displayName: string
 ): Promise<User> {
 
-  const cred = await createUserWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
+  const cred =
+    await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
 
-  await updateProfile(cred.user, {
-    displayName,
-  });
+
+  await updateProfile(
+    cred.user,
+    {
+      displayName,
+    }
+  );
 
 
   const profile: UserProfile = {
+
     uid: cred.user.uid,
+
     email,
+
     displayName,
+
     totalKm: 0,
+
     totalTrips: 0,
+
     maxSpeed: 0,
+
     totalXP: 0,
+
     level: 1,
+
     createdAt: Date.now(),
+
     lastActiveAt: Date.now(),
+
   };
 
 
@@ -108,30 +131,39 @@ export async function registerWithEmail(
 }
 
 
+
 export async function loginWithEmail(
   email: string,
   password: string
 ) {
+
   return signInWithEmailAndPassword(
     auth,
     email,
     password
   );
+
 }
+
 
 
 export async function logout() {
+
   return signOut(auth);
+
 }
+
 
 
 export function subscribeToAuth(
   callback: (user: User | null) => void
 ) {
+
   return onAuthStateChanged(
     auth,
     callback
   );
+
 }
 
 
@@ -142,14 +174,19 @@ export async function getUserProfile(
   uid: string
 ): Promise<UserProfile | null> {
 
-  const snap = await getDoc(
-    doc(db, "users", uid)
-  );
+
+  const snap =
+    await getDoc(
+      doc(db, "users", uid)
+    );
+
 
   return snap.exists()
     ? (snap.data() as UserProfile)
     : null;
+
 }
+
 
 
 
@@ -159,43 +196,57 @@ export async function updateUserStats(
   maxSpeedKmh: number
 ) {
 
-  const xpGained = calculateTripXP(
-    distanceKm,
-    maxSpeedKmh
+
+  const xpGained =
+    calculateTripXP(
+      distanceKm,
+      maxSpeedKmh
+    );
+
+
+  const ref =
+    doc(db, "users", uid);
+
+
+
+  const profile =
+    await getUserProfile(uid);
+
+
+
+  const currentXP =
+    profile?.totalXP || 0;
+
+
+
+  const newXP =
+    currentXP + xpGained;
+
+
+
+  const newLevel =
+    getLevelFromXP(newXP);
+
+
+
+  await updateDoc(
+    ref,
+    {
+
+      totalKm: increment(distanceKm),
+
+      totalTrips: increment(1),
+
+      maxSpeed: maxSpeedKmh,
+
+      totalXP: newXP,
+
+      level: newLevel,
+
+      lastActiveAt: Date.now(),
+
+    }
   );
-
-  const ref = doc(
-    db,
-    "users",
-    uid
-  );
-
-
-  const profile = await getUserProfile(uid);
-
-  const currentXP = profile?.totalXP || 0;
-
-  const newXP = currentXP + xpGained;
-
-  const newLevel = getLevelFromXP(newXP);
-
-
-
-  await updateDoc(ref, {
-
-    totalKm: increment(distanceKm),
-
-    totalTrips: increment(1),
-
-    maxSpeed: maxSpeedKmh,
-
-    totalXP: newXP,
-
-    level: newLevel,
-
-    lastActiveAt: Date.now(),
-
-  });
 
 
   return {
@@ -203,6 +254,7 @@ export async function updateUserStats(
     newXP,
     newLevel,
   };
+
 }
 
 
@@ -214,17 +266,21 @@ export async function saveTrip(
   trip: Omit<Trip, "id">
 ): Promise<string> {
 
-  const ref = await addDoc(
-    collection(db, "trips"),
-    {
-      ...trip,
-      createdAt: serverTimestamp(),
-    }
-  );
+
+  const ref =
+    await addDoc(
+      collection(db, "trips"),
+      {
+        ...trip,
+        createdAt: serverTimestamp(),
+      }
+    );
 
 
   return ref.id;
+
 }
+
 
 
 
@@ -233,23 +289,30 @@ export async function getUserTrips(
   max = 20
 ): Promise<Trip[]> {
 
-  const q = query(
-    collection(db, "trips"),
-    where("userId", "==", uid),
-    orderBy("startedAt", "desc"),
-    limit(max)
-  );
+
+  const q =
+    query(
+      collection(db, "trips"),
+      where("userId", "==", uid),
+      orderBy("startedAt", "desc"),
+      limit(max)
+    );
 
 
-  const snap = await getDocs(q);
+
+  const snap =
+    await getDocs(q);
+
 
 
   return snap.docs.map(
-    (d) => ({
-      id: d.id,
-      ...d.data(),
-    } as Trip)
+    (d) =>
+      ({
+        id: d.id,
+        ...d.data(),
+      } as Trip)
   );
+
 }
 
 
@@ -265,20 +328,25 @@ export async function getLeaderboard(
 ): Promise<LeaderboardEntry[]> {
 
 
-  const q = query(
-    collection(db, "users"),
-    orderBy("totalXP", "desc"),
-    limit(max)
-  );
+  const q =
+    query(
+      collection(db, "users"),
+      orderBy("totalXP", "desc"),
+      limit(max)
+    );
 
 
-  const snap = await getDocs(q);
+
+  const snap =
+    await getDocs(q);
+
 
 
   return snap.docs.map(
     (d, i) => {
 
-      const data = d.data() as UserProfile;
+      const data =
+        d.data() as UserProfile;
 
 
       return {
@@ -305,6 +373,7 @@ export async function getLeaderboard(
 
     }
   );
+
 }
 
 
@@ -318,19 +387,23 @@ export async function getUserChallengeProgress(
 ): Promise<UserChallengeProgress[]> {
 
 
-  const snap = await getDocs(
-    collection(
-      db,
-      "users",
-      uid,
-      "challenges"
-    )
-  );
+  const snap =
+    await getDocs(
+      collection(
+        db,
+        "users",
+        uid,
+        "challenges"
+      )
+    );
+
 
 
   return snap.docs.map(
-    (d) => d.data() as UserChallengeProgress
+    (d) =>
+      d.data() as UserChallengeProgress
   );
+
 }
 
 
@@ -344,30 +417,38 @@ export async function updateChallengeProgress(
 ) {
 
 
-  const ref = doc(
-    db,
-    "users",
-    uid,
-    "challenges",
-    challengeId
-  );
+  const ref =
+    doc(
+      db,
+      "users",
+      uid,
+      "challenges",
+      challengeId
+    );
+
 
 
   await setDoc(
     ref,
     {
+
       challengeId,
+
       progress,
+
       completed,
+
       claimed: false,
+
       updatedAt: Date.now(),
+
     },
     {
       merge: true,
     }
   );
-}
 
+}
 
 
 
@@ -379,32 +460,43 @@ export async function claimChallengeReward(
 ) {
 
 
-  const challengeRef = doc(
-    db,
-    "users",
-    uid,
-    "challenges",
-    challengeId
-  );
+  const challengeRef =
+    doc(
+      db,
+      "users",
+      uid,
+      "challenges",
+      challengeId
+    );
 
 
-  const userRef = doc(
-    db,
-    "users",
-    uid
-  );
+
+  const userRef =
+    doc(
+      db,
+      "users",
+      uid
+    );
 
 
-  const profile = await getUserProfile(uid);
+
+  const profile =
+    await getUserProfile(uid);
 
 
-  const currentXP = profile?.totalXP || 0;
+
+  const currentXP =
+    profile?.totalXP || 0;
 
 
-  const newXP = currentXP + xpReward;
+
+  const newXP =
+    currentXP + xpReward;
 
 
-  const newLevel = getLevelFromXP(newXP);
+
+  const newLevel =
+    getLevelFromXP(newXP);
 
 
 
@@ -416,17 +508,23 @@ export async function claimChallengeReward(
   );
 
 
+
   await updateDoc(
     userRef,
     {
+
       totalXP: newXP,
+
       level: newLevel,
+
     }
   );
+
 
 
   return {
     newXP,
     newLevel,
   };
+
 }
