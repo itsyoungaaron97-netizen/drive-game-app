@@ -1011,6 +1011,24 @@ maxZoom:19
 let marker = null;
 
 
+const carIcon = L.icon({
+
+iconUrl:
+"https://cdn-icons-png.flaticon.com/512/744/744465.png",
+
+iconSize:[
+45,
+45
+],
+
+iconAnchor:[
+22,
+22
+],
+
+});
+
+
 let routeLine =
 L.polyline([],
 {
@@ -1111,7 +1129,12 @@ map.removeLayer(marker);
 
 
 marker =
-L.marker(pos)
+L.marker(
+pos,
+{
+icon:carIcon
+}
+)
 .addTo(map);
 
 
