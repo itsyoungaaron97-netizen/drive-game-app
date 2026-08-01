@@ -9,7 +9,6 @@ export interface OwnedCar {
 
   ownerId: string;
 
-
   vinHash?: string;
 
   verifiedOwnership?: boolean;
@@ -52,6 +51,21 @@ export interface UserProfile {
   displayName: string;
 
   photoURL?: string;
+
+
+
+  // Location Identity
+
+  nationality?: string;
+
+  country?: string;
+
+  state?: string;
+
+  city?: string;
+
+  language?: string;
+
 
 
   totalKm: number;
@@ -134,6 +148,7 @@ export interface Garage {
 
 
 
+
 // ---------- World Map Objects ----------
 
 export type WorldObjectType =
@@ -166,7 +181,6 @@ export interface WorldObject {
 
   name: string;
 
-
   description?: string;
 
 
@@ -190,6 +204,7 @@ export interface WorldObject {
   createdAt: number;
 
 }
+
 
 
 
@@ -248,6 +263,7 @@ export interface Business {
 
 
 
+
 // ---------- Trip ----------
 
 export interface TripPoint {
@@ -263,7 +279,6 @@ export interface TripPoint {
   altitude?: number;
 
 }
-
 
 
 
@@ -329,6 +344,7 @@ export interface Trip {
   carName?: string;
 
 }
+
 
 
 
@@ -453,6 +469,8 @@ export interface Comment {
 
 
 
+
+
 // ---------- Messages ----------
 
 export interface Message {
@@ -484,6 +502,8 @@ export interface Message {
 
 
 
+
+
 // ---------- Leaderboard ----------
 
 export interface LeaderboardEntry {
@@ -509,6 +529,8 @@ export interface LeaderboardEntry {
   rank?: number;
 
 }
+
+
 
 
 
