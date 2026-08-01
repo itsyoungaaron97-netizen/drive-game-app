@@ -11,6 +11,7 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from "react-native";
 
 import {
@@ -25,8 +26,8 @@ import {
 } from "../services/firebase";
 
 import {
-  getMostDrivenCar,
-} from "../services/cars";
+  cars,
+} from "../data/cars";
 
 import {
   UserProfile,
@@ -59,23 +60,19 @@ export default function ProfileScreen() {
     useState<Trip[]>([]);
 
 
-  const [mostDriven,setMostDriven] =
-    useState<string | null>(null);
-
-
   const [loading,setLoading] =
     useState(true);
 
 
 
-  useEffect(() => {
+  useEffect(()=>{
 
 
     const user =
       auth.currentUser;
 
 
-    if (!user) return;
+    if(!user) return;
 
 
 
@@ -84,8 +81,7 @@ export default function ProfileScreen() {
 
       const [
         p,
-        t,
-        most
+        t
       ] =
       await Promise.all([
 
@@ -93,11 +89,7 @@ export default function ProfileScreen() {
 
         getUserTrips(
           user.uid,
-          10
-        ),
-
-        getMostDrivenCar(
-          user.uid
+          20
         ),
 
       ]);
@@ -107,18 +99,6 @@ export default function ProfileScreen() {
       setProfile(p);
 
       setTrips(t);
-
-
-
-      if(most){
-
-        setMostDriven(
-          most[0]
-        );
-
-      }
-
-
 
       setLoading(false);
 
@@ -150,15 +130,10 @@ export default function ProfileScreen() {
           style:"cancel",
         },
 
-
         {
-
           text:"Log out",
-
           style:"destructive",
-
           onPress:()=>logout(),
-
         },
 
       ]
@@ -167,6 +142,40 @@ export default function ProfileScreen() {
 
 
   };
+
+
+
+
+  const places = Array.from(
+
+    new Set(
+
+      trips.map(
+
+        t =>
+
+        `${t.city || "Unknown"}, ${t.country || ""}`
+
+      )
+
+    )
+
+  );
+
+
+
+
+  const drivenCars = Object.entries(
+
+    profile?.carsDriven || {}
+
+  )
+
+  .sort(
+
+    (a,b)=>b[1]-a[1]
+
+  );
 
 
 
@@ -190,7 +199,6 @@ export default function ProfileScreen() {
 
     );
 
-
   }
 
 
@@ -206,13 +214,13 @@ export default function ProfileScreen() {
       contentContainerStyle={{
 
         paddingTop:
-          insets.top + spacing.md,
+        insets.top + spacing.md,
 
         paddingBottom:
-          insets.bottom + 80,
+        insets.bottom + 80,
 
         paddingHorizontal:
-          spacing.md,
+        spacing.md,
 
       }}
 
@@ -230,6 +238,41 @@ export default function ProfileScreen() {
       <View style={styles.card}>
 
 
+        {
+          profile?.photoURL ?
+
+          (
+
+            <Image
+
+              source={{
+                uri:profile.photoURL
+              }}
+
+              style={styles.avatar}
+
+            />
+
+          )
+
+          :
+
+          (
+
+            <View style={styles.avatarPlaceholder}>
+
+              <Text style={styles.avatarText}>
+                🚗
+              </Text>
+
+            </View>
+
+          )
+
+        }
+
+
+
         <Text style={styles.name}>
           {profile?.displayName || "Driver"}
         </Text>
@@ -238,40 +281,6 @@ export default function ProfileScreen() {
         <Text style={styles.email}>
           {profile?.email}
         </Text>
-
-
-
-        <Text style={styles.section}>
-          🚗 Current Car
-        </Text>
-
-
-        <Text style={styles.car}>
-          {
-            profile?.selectedCar
-            ?
-            `${profile.selectedCar.brand} ${profile.selectedCar.model}`
-            :
-            "No car selected"
-          }
-        </Text>
-
-
-
-
-        <Text style={styles.section}>
-          🏆 Most Driven Car
-        </Text>
-
-
-        <Text style={styles.car}>
-          {
-            mostDriven
-            ||
-            "No drives yet"
-          }
-        </Text>
-
 
 
 
@@ -295,310 +304,73 @@ export default function ProfileScreen() {
 
 
 
-        <View style={styles.statsRow}>
-
-
-          <View style={styles.stat}>
-
-            <Text style={styles.statValue}>
-              {(profile?.totalKm || 0).toFixed(1)}
-            </Text>
-
-
-            <Text style={styles.statLabel}>
-              KM
-            </Text>
-
-
-          </View>
-
-
-
-          <View style={styles.stat}>
-
-
-            <Text style={styles.statValue}>
-              {profile?.totalTrips || 0}
-            </Text>
-
-
-            <Text style={styles.statLabel}>
-              Trips
-            </Text>
-
-
-          </View>
-
-
-
-
-          <View style={styles.stat}>
-
-
-            <Text style={styles.statValue}>
-              {profile?.maxSpeed || 0}
-            </Text>
-
-
-            <Text style={styles.statLabel}>
-              Max
-            </Text>
-
-
-          </View>
-
-
-
-        </View>
-
-
-      </View>
-
-
-
-
-
-      <Text style={styles.sectionTitle}>
-        Recent Drives
-      </Text>
-
-
-
-
-      {
-        trips.length === 0 ?
-
-        (
-
-          <Text style={styles.empty}>
-            No trips yet. Hit START DRIVE!
-          </Text>
-
-        )
-
-        :
-
-        trips.map((trip)=>(
-
-
-          <View
-            key={trip.id}
-            style={styles.tripCard}
-          >
-
-
-            <Text style={styles.tripDistance}>
-              {trip.distanceKm.toFixed(2)} km
-            </Text>
-
-
-            <Text style={styles.tripMeta}>
-              {trip.city || "Unknown"} • max {trip.maxSpeedKmh} km/h
-            </Text>
-
-
-            <Text style={styles.tripDate}>
-
-              {format(
-                new Date(trip.startedAt),
-                "MMM d, yyyy • HH:mm"
-              )}
-
-            </Text>
-
-
-          </View>
-
-
-        ))
-
-      }
-
-
-
-
-
-      <TouchableOpacity
-
-        style={styles.logoutBtn}
-
-        onPress={handleLogout}
-
-      >
-
-        <Text style={styles.logoutText}>
-          Log Out
+        <Text style={styles.section}>
+          🚗 Selected Car
         </Text>
 
 
-      </TouchableOpacity>
+        {
+          profile?.selectedCar ?
+
+          (
+
+            <>
+
+            {
+              profile.selectedCar.image &&
+
+              <Image
+
+                source={profile.selectedCar.image}
+
+                style={styles.carImage}
+
+              />
+
+            }
+
+
+            <Text style={styles.car}>
+              {profile.selectedCar.brand}{" "}
+              {profile.selectedCar.model}
+            </Text>
+
+            </>
+
+          )
+
+          :
+
+          <Text style={styles.empty}>
+            No car selected
+          </Text>
+
+        }
 
 
 
-    </ScrollView>
-
-  );
-
-}
 
 
 
-
-const styles = StyleSheet.create({
-
-
-container:{
-flex:1,
-backgroundColor:colors.background,
-},
+        <Text style={styles.section}>
+          🏆 Cars Driven Most
+        </Text>
 
 
-center:{
-justifyContent:"center",
-alignItems:"center",
-},
 
+        {
+          drivenCars.length === 0 ?
 
-title:{
-color:colors.text,
-fontSize:28,
-fontWeight:"800",
-marginBottom:spacing.md,
-},
+          (
 
+            <Text style={styles.empty}>
+              No drives yet
+            </Text>
 
-card:{
-backgroundColor:colors.surface,
-borderRadius:16,
-padding:spacing.lg,
-marginBottom:spacing.lg,
-},
+          )
 
+          :
 
-name:{
-color:colors.text,
-fontSize:22,
-fontWeight:"800",
-},
+          drivenCars.slice(0,5).map(
 
-
-email:{
-color:colors.textSecondary,
-marginBottom:spacing.md,
-},
-
-
-section:{
-color:colors.primary,
-fontSize:16,
-fontWeight:"800",
-marginTop:10,
-},
-
-
-car:{
-color:colors.text,
-fontSize:18,
-marginTop:5,
-},
-
-
-xpBox:{
-backgroundColor:colors.surfaceLight,
-padding:spacing.md,
-borderRadius:12,
-marginTop:spacing.md,
-alignItems:"center",
-},
-
-
-level:{
-color:colors.primary,
-fontSize:20,
-fontWeight:"800",
-},
-
-
-xp:{
-color:colors.textSecondary,
-},
-
-
-statsRow:{
-flexDirection:"row",
-justifyContent:"space-between",
-marginTop:spacing.md,
-},
-
-
-stat:{
-alignItems:"center",
-},
-
-
-statValue:{
-color:colors.primary,
-fontSize:20,
-fontWeight:"800",
-},
-
-
-statLabel:{
-color:colors.textSecondary,
-},
-
-
-sectionTitle:{
-color:colors.text,
-fontSize:18,
-fontWeight:"700",
-},
-
-
-tripCard:{
-backgroundColor:colors.surface,
-padding:spacing.md,
-borderRadius:12,
-marginTop:spacing.sm,
-},
-
-
-tripDistance:{
-color:colors.primary,
-fontWeight:"800",
-},
-
-
-tripMeta:{
-color:colors.text,
-},
-
-
-tripDate:{
-color:colors.textSecondary,
-fontSize:12,
-},
-
-
-empty:{
-color:colors.textSecondary,
-},
-
-
-logoutBtn:{
-marginTop:spacing.xl,
-borderWidth:1,
-borderColor:colors.danger,
-padding:spacing.md,
-borderRadius:12,
-alignItems:"center",
-},
-
-
-logoutText:{
-color:colors.danger,
-fontWeight:"700",
-},
-
-
-});
+           
