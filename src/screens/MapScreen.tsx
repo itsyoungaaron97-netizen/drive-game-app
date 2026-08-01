@@ -13,6 +13,7 @@ import {
   TextInput,
   Alert,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 
 import { WebView } from "react-native-webview";
@@ -21,11 +22,13 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
+
 import {
   auth,
   saveTrip,
   updateUserStats,
 } from "../services/firebase";
+
 
 import {
   requestLocationPermissions,
@@ -37,9 +40,11 @@ import {
   reverseGeocode,
 } from "../services/location";
 
+
 import {
   TripPoint,
 } from "../types";
+
 
 import {
   colors,
@@ -47,8 +52,9 @@ import {
 
 
 
+
 // ===============================
-// MAP SEARCH SERVICE
+// SEARCH ADDRESS
 // ===============================
 
 
@@ -56,46 +62,78 @@ async function searchAddress(
   address:string
 ){
 
-  const url =
-  `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+  try{
 
 
-  const response =
-    await fetch(
-      url,
-      {
-        headers:{
-          "User-Agent":
-          "DriveGame-App",
-        },
-      }
+    const response =
+      await fetch(
+
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
+
+        {
+
+          headers:{
+
+            "User-Agent":
+            "DriveGame-App",
+
+          },
+
+        }
+
+      );
+
+
+
+    const data =
+      await response.json();
+
+
+
+    if(
+      !data ||
+      !data.length
+    ){
+
+      return null;
+
+    }
+
+
+
+    return {
+
+      latitude:
+      Number(data[0].lat),
+
+
+      longitude:
+      Number(data[0].lon),
+
+
+      name:
+      data[0].display_name,
+
+    };
+
+
+  }catch(error){
+
+
+    console.log(
+      "Search error",
+      error
     );
 
 
-  const data =
-    await response.json();
-
-
-
-  if(!data.length)
     return null;
 
 
+  }
 
-  return {
-
-    latitude:
-      Number(data[0].lat),
-
-    longitude:
-      Number(data[0].lon),
-
-    name:
-      data[0].display_name,
-
-  };
 
 }
+
 
 
 
@@ -112,6 +150,7 @@ async function getRoute(
   longitude:number;
  },
 
+
  end:{
   latitude:number;
   longitude:number;
@@ -120,42 +159,77 @@ async function getRoute(
 ){
 
 
- const url =
-
- `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
+ try{
 
 
-
- const response =
- await fetch(url);
+  const url =
 
 
-
- const data =
- await response.json();
+  `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
 
 
 
- if(
- !data.routes ||
- !data.routes.length
- )
- return [];
+
+  const response =
+    await fetch(url);
 
 
 
- return data.routes[0]
- .geometry
- .coordinates
- .map(
- (c:number[])=>({
+  const data =
+    await response.json();
 
- latitude:c[1],
 
- longitude:c[0],
 
- })
- );
+  if(
+    !data.routes ||
+    !data.routes.length
+  ){
+
+    return [];
+
+  }
+
+
+
+  return (
+
+    data.routes[0]
+    .geometry
+    .coordinates
+
+    .map(
+
+      (point:number[])=>({
+
+        latitude:
+        point[1],
+
+
+        longitude:
+        point[0],
+
+      })
+
+    )
+
+  );
+
+
+
+ }catch(error){
+
+
+  console.log(
+    "Route error",
+    error
+  );
+
+
+  return [];
+
+
+ }
+
 
 
 }
@@ -164,8 +238,9 @@ async function getRoute(
 
 
 
+
 // ===============================
-// REPORT TYPES
+// ROAD REPORT
 // ===============================
 
 
@@ -180,6 +255,7 @@ type RoadReport = {
  |
  "crash";
 
+
  latitude:number;
 
  longitude:number;
@@ -189,6 +265,7 @@ type RoadReport = {
  time:string;
 
 };
+
 
 
 
@@ -215,21 +292,40 @@ useRef<any>(null);
 
 
 const startTime =
-useRef(0);
+useRef<number>(0);
 
 
 
 
-// ===============================
-// STATES
-// ===============================
+
+
+
+const [loading,setLoading] =
+useState(true);
+
 
 
 const [location,setLocation] =
 useState<{
-latitude:number;
-longitude:number;
+
+ latitude:number;
+
+ longitude:number;
+
 }|null>(null);
+
+
+
+
+const [selectedReportLocation,setSelectedReportLocation] =
+useState<{
+
+ latitude:number;
+
+ longitude:number;
+
+}|null>(null);
+
 
 
 
@@ -238,13 +334,13 @@ useState("");
 
 
 
-const [destination,setDestination] =
-useState<any>(null);
-
-
-
 const [route,setRoute] =
 useState<any[]>([]);
+
+
+
+const [destination,setDestination] =
+useState<any>(null);
 
 
 
@@ -268,96 +364,102 @@ useState(false);
 
 
 
+
 const [feed,setFeed] =
-useState<RoadReport[]>([
+useState<RoadReport[]>([]);const sendToMap = (
+data:any
+)=>{
 
-{
-id:"1",
-type:"traffic",
-latitude:0,
-longitude:0,
-user:"Alex",
-time:"2 min ago",
-},
 
-{
-id:"2",
-type:"police",
-latitude:0,
-longitude:0,
-user:"Marco",
-time:"5 min ago",
-},
+webRef.current?.postMessage(
 
-]);
+JSON.stringify(data)
+
+);
+
+
+};
+
+
+
 
 
 
 
 // ===============================
-// INITIAL LOCATION
+// LOAD LOCATION
 // ===============================
 
 
 useEffect(()=>{
 
 
-(async()=>{
+const load = async()=>{
 
 
-const allowed =
+try{
+
+
+const permission =
 await requestLocationPermissions();
 
 
 
-if(!allowed){
+if(!permission){
+
 
 Alert.alert(
-"Location required",
-"Enable location permission"
+
+"Location disabled",
+
+"Please enable location permission"
+
 );
 
+
 return;
+
 
 }
 
 
 
-const pos =
+
+const position =
 await getCurrentPosition();
 
 
 
-if(pos){
+if(position){
 
 
-const loc={
+
+const current = {
+
 
 latitude:
-pos.coords.latitude,
+position.coords.latitude,
+
 
 longitude:
-pos.coords.longitude,
+position.coords.longitude,
+
 
 };
 
 
 
-setLocation(loc);
+setLocation(current);
 
 
 
-webRef.current?.postMessage(
-
-JSON.stringify({
+sendToMap({
 
 type:"location",
 
-...loc,
+...current,
 
-})
-
-);
+});
 
 
 
@@ -365,18 +467,50 @@ type:"location",
 
 
 
-})();
+}catch(error){
+
+
+console.log(error);
+
+
+}finally{
+
+
+setLoading(false);
+
+
+}
+
+
+
+};
+
+
+
+load();
+
 
 
 
 return()=>{
 
-watchRef.current?.remove();
+
+if(watchRef.current){
+
+
+watchRef.current.remove();
+
+
+}
+
 
 };
 
 
 },[]);
+
+
+
 
 
 
@@ -404,12 +538,18 @@ await searchAddress(search);
 
 if(!result){
 
+
 Alert.alert(
+
 "Not found",
-"Address unavailable"
+
+"Could not find destination"
+
 );
 
+
 return;
+
 
 }
 
@@ -422,7 +562,7 @@ setDestination(result);
 if(location){
 
 
-const newRoute =
+const routeData =
 await getRoute(
 
 location,
@@ -433,21 +573,18 @@ result
 
 
 
-setRoute(newRoute);
+setRoute(routeData);
 
 
 
-webRef.current?.postMessage(
-
-JSON.stringify({
+sendToMap({
 
 type:"route",
 
-points:newRoute,
+points:routeData,
 
-})
 
-);
+});
 
 
 
@@ -456,6 +593,11 @@ points:newRoute,
 
 
 };
+
+
+
+
+
 
 
 
@@ -487,6 +629,7 @@ setTracking(true);
 
 
 
+
 watchRef.current =
 
 await watchPosition(
@@ -494,10 +637,11 @@ await watchPosition(
 (point)=>{
 
 
+
 setPoints(old=>{
 
 
-const updated=[
+const updated = [
 
 ...old,
 
@@ -517,7 +661,10 @@ calculateDistanceKm(updated)
 
 return updated;
 
+
 });
+
+
 
 
 
@@ -526,9 +673,7 @@ setSpeed(
 Math.round(
 
 (point.speed || 0)
-
 *
-
 3.6
 
 )
@@ -537,31 +682,45 @@ Math.round(
 
 
 
-webRef.current?.postMessage(
 
-JSON.stringify({
+sendToMap({
 
 type:"location",
 
 latitude:
 point.latitude,
 
+
 longitude:
 point.longitude,
 
-})
 
-);
+});
 
 
 
 }
 
+
+
 );
 
 
 
-},[]);// ===============================
+},[]);
+
+
+
+
+
+
+
+
+
+
+
+
+// ===============================
 // STOP DRIVE
 // ===============================
 
@@ -570,9 +729,17 @@ const stopDrive =
 async()=>{
 
 
-watchRef.current?.remove();
+if(watchRef.current){
 
-watchRef.current = null;
+
+watchRef.current.remove();
+
+
+watchRef.current=null;
+
+
+}
+
 
 
 setTracking(false);
@@ -581,14 +748,22 @@ setTracking(false);
 
 if(points.length < 2){
 
+
 Alert.alert(
-"Too short",
+
+"Drive too short",
+
 "Drive longer before saving"
+
 );
+
+
 
 return;
 
+
 }
+
 
 
 
@@ -600,22 +775,35 @@ Date.now();
 
 const duration =
 Math.round(
-(endedAt - startTime.current)
+
+(endedAt -
+startTime.current)
 /1000
+
 );
 
 
 
+
+
 const maxSpeed =
-calculateMaxSpeedKmh(points);
+calculateMaxSpeedKmh(
+points
+);
+
 
 
 
 const avgSpeed =
 calculateAvgSpeedKmh(
+
 distanceKm,
+
 duration
+
 );
+
+
 
 
 
@@ -630,14 +818,40 @@ return;
 
 
 
-const place =
+
+
+
+let place:any = {};
+
+
+
+try{
+
+
+place =
 await reverseGeocode(
 
 points[0].latitude,
 
 points[0].longitude
 
+) || {};
+
+
+
+}catch(e){
+
+
+console.log(
+"Reverse geocode failed"
 );
+
+
+}
+
+
+
+
 
 
 
@@ -645,48 +859,62 @@ points[0].longitude
 try{
 
 
+
 await saveTrip({
 
 userId:
 user.uid,
 
+
 userDisplayName:
 user.displayName || "Driver",
+
 
 startedAt:
 startTime.current,
 
+
 endedAt,
 
+
 distanceKm,
+
 
 durationSeconds:
 duration,
 
+
 avgSpeedKmh:
 avgSpeed,
+
 
 maxSpeedKmh:
 maxSpeed,
 
+
 route:
 points,
 
+
 city:
-place.city,
+place.city || "",
+
 
 state:
-place.state,
+place.state || "",
+
 
 country:
-place.country,
+place.country || "",
+
 
 });
 
 
 
 
-const xp =
+
+const result =
 await updateUserStats(
 
 user.uid,
@@ -699,32 +927,35 @@ maxSpeed
 
 
 
+
+
 Alert.alert(
 
 "Drive Saved",
 
-`${distanceKm.toFixed(2)} km\n+${xp.xpGained} XP\nLevel ${xp.newLevel}`
+`${distanceKm.toFixed(2)} km\n+${result.xpGained} XP`
 
 );
 
 
 
-}
 
-catch(error:any){
+}catch(error:any){
 
 
 Alert.alert(
 
-"Error",
+"Save failed",
 
 error.message ||
-"Could not save drive"
+"Unknown error"
 
 );
 
 
 }
+
+
 
 
 
@@ -735,6 +966,7 @@ setDistanceKm(0);
 setSpeed(0);
 
 
+
 };
 
 
@@ -743,8 +975,9 @@ setSpeed(0);
 
 
 
+
 // ===============================
-// TAP MAP ROAD REPORT
+// CREATE REPORT
 // ===============================
 
 
@@ -755,12 +988,18 @@ const createReport =
 "police"
 |
 "crash"
-)=>
-{
+)=>{
 
 
-if(!location)
+const target =
+selectedReportLocation ||
+location;
+
+
+
+if(!target)
 return;
+
 
 
 
@@ -775,16 +1014,15 @@ type,
 
 
 latitude:
-location.latitude,
+target.latitude,
 
 
 longitude:
-location.longitude,
+target.longitude,
 
 
 user:
-auth.currentUser?.displayName
-||
+auth.currentUser?.displayName ||
 "Driver",
 
 
@@ -809,17 +1047,18 @@ report,
 
 
 
-webRef.current?.postMessage(
-
-JSON.stringify({
+sendToMap({
 
 type:"report",
 
 report,
 
-})
+});
 
-);
+
+
+
+setSelectedReportLocation(null);
 
 
 
@@ -827,25 +1066,10 @@ Alert.alert(
 
 "Report sent",
 
-type === "traffic"
-
-?
-
-"🚗 Traffic reported"
-
-:
-
-type === "police"
-
-?
-
-"🚓 Police reported"
-
-:
-
-"💥 Crash reported"
+type.toUpperCase()
 
 );
+
 
 
 };
@@ -855,28 +1079,26 @@ type === "police"
 
 
 
-// ===============================
-// REPORT MENU
-// ===============================
 
 
-const showReportMenu =
+const reportMenu =
 ()=>{
 
 
 Alert.alert(
 
-"Report road event",
+"Road report",
 
-"Choose what is happening",
+"Choose event",
 
 [
+
 
 {
 
 text:"🚗 Traffic",
 
-onPress:()=>createReport("traffic")
+onPress:()=>createReport("traffic"),
 
 },
 
@@ -885,7 +1107,7 @@ onPress:()=>createReport("traffic")
 
 text:"🚓 Police",
 
-onPress:()=>createReport("police")
+onPress:()=>createReport("police"),
 
 },
 
@@ -894,7 +1116,7 @@ onPress:()=>createReport("police")
 
 text:"💥 Crash",
 
-onPress:()=>createReport("crash")
+onPress:()=>createReport("crash"),
 
 },
 
@@ -903,50 +1125,17 @@ onPress:()=>createReport("crash")
 
 text:"Cancel",
 
-style:"cancel"
+style:"cancel",
 
-}
+},
+
 
 ]
 
 );
 
 
-};
-
-
-
-
-
-// ===============================
-// SEND ROUTE TO MAP
-// ===============================
-
-
-const sendRouteData =
-()=>{
-
-
-webRef.current?.postMessage(
-
-JSON.stringify({
-
-type:"route",
-
-points:route,
-
-})
-
-);
-
-
-};
-// ===============================
-// MAP HTML
-// ===============================
-
-
-const html = `
+};const html = `
 
 <!DOCTYPE html>
 
@@ -956,8 +1145,10 @@ const html = `
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
 
 <style>
 
@@ -973,15 +1164,20 @@ padding:0;
 
 </style>
 
+
 </head>
+
 
 
 <body>
 
+
 <div id="map"></div>
 
 
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 
 
 <script>
@@ -989,7 +1185,10 @@ padding:0;
 
 const map =
 L.map("map")
-.setView([0,0],15);
+.setView(
+[0,0],
+15
+);
 
 
 
@@ -1008,29 +1207,15 @@ maxZoom:19
 
 
 
-let marker = null;
 
-
-const carIcon = L.icon({
-
-iconUrl:
-"https://cdn-icons-png.flaticon.com/512/744/744465.png",
-
-iconSize:[
-45,
-45
-],
-
-iconAnchor:[
-22,
-22
-],
-
-});
+let marker=null;
 
 
 let routeLine =
-L.polyline([],
+L.polyline(
+
+[],
+
 {
 
 color:"#00ff99",
@@ -1043,6 +1228,7 @@ weight:5
 
 
 
+
 let reports =
 L.layerGroup()
 .addTo(map);
@@ -1051,14 +1237,33 @@ L.layerGroup()
 
 
 
-// MAP TAP REPORT LOCATION
+function carIcon(){
+
+
+return L.divIcon({
+
+html:"🚗",
+
+className:"",
+
+iconSize:[40,40]
+
+});
+
+
+}
+
+
+
+
+
 
 
 map.on(
 
 "click",
 
-function(e){
+(e)=>{
 
 
 window.ReactNativeWebView.postMessage(
@@ -1076,10 +1281,12 @@ longitude:e.latlng.lng
 );
 
 
-
 }
 
 );
+
+
+
 
 
 
@@ -1089,7 +1296,7 @@ document.addEventListener(
 
 "message",
 
-function(event){
+(event)=>{
 
 
 const data =
@@ -1122,6 +1329,7 @@ pos,
 
 
 
+
 if(marker)
 
 map.removeLayer(marker);
@@ -1130,16 +1338,23 @@ map.removeLayer(marker);
 
 marker =
 L.marker(
+
 pos,
+
 {
-icon:carIcon
+
+icon:carIcon()
+
 }
+
 )
+
 .addTo(map);
 
 
 
 }
+
 
 
 
@@ -1183,8 +1398,10 @@ routeLine.getBounds()
 
 
 
-if(data.type==="report"){
 
+
+
+if(data.type==="report"){
 
 
 const r =
@@ -1192,24 +1409,18 @@ data.report;
 
 
 
-let icon = "⚠️";
+let emoji="⚠️";
 
 
 
 if(r.type==="traffic")
-
-icon="🚗";
-
+emoji="🚗";
 
 if(r.type==="police")
-
-icon="🚓";
-
+emoji="🚓";
 
 if(r.type==="crash")
-
-icon="💥";
-
+emoji="💥";
 
 
 
@@ -1222,13 +1433,7 @@ r.latitude,
 
 r.longitude
 
-],
-
-{
-
-title:r.type
-
-}
+]
 
 )
 
@@ -1236,10 +1441,9 @@ title:r.type
 
 .bindPopup(
 
-icon+" "+r.type
+emoji+" "+r.type
 
 );
-
 
 
 }
@@ -1247,14 +1451,16 @@ icon+" "+r.type
 
 
 
+
 }
 
 
-
 );
+
 
 
 </script>
+
 
 </body>
 
@@ -1267,13 +1473,14 @@ icon+" "+r.type
 
 
 
-// ===============================
-// WEBVIEW MESSAGE HANDLER
-// ===============================
+
 
 
 const handleMapMessage =
 (event:any)=>{
+
+
+try{
 
 
 const data =
@@ -1285,17 +1492,22 @@ event.nativeEvent.data
 
 
 
+
 if(data.type==="mapClick"){
 
 
 
-const fakeLocation={
+setSelectedReportLocation({
 
-latitude:data.latitude,
+latitude:
+data.latitude,
 
-longitude:data.longitude,
 
-};
+longitude:
+data.longitude,
+
+
+});
 
 
 
@@ -1303,79 +1515,16 @@ Alert.alert(
 
 "Report location",
 
-"Report this point?",
+"Use this location?",
 
 [
 
-{
-
-text:"Traffic",
-
-onPress:()=>{
-
-
-setFeed(old=>[
 
 {
 
-id:Date.now().toString(),
+text:"Yes",
 
-type:"traffic",
-
-latitude:data.latitude,
-
-longitude:data.longitude,
-
-user:
-auth.currentUser?.displayName || "Driver",
-
-time:"now",
-
-},
-
-...old
-
-]);
-
-
-webRef.current?.postMessage(
-
-JSON.stringify({
-
-type:"report",
-
-report:{
-
-...fakeLocation,
-
-type:"traffic"
-
-}
-
-})
-
-);
-
-
-}
-
-},
-
-
-{
-
-text:"Police",
-
-onPress:()=>createReport("police")
-
-},
-
-
-{
-
-text:"Crash",
-
-onPress:()=>createReport("crash")
+onPress:reportMenu,
 
 },
 
@@ -1384,12 +1533,27 @@ onPress:()=>createReport("crash")
 
 text:"Cancel",
 
-style:"cancel"
+style:"cancel",
 
-}
+},
+
 
 ]
 
+);
+
+
+
+}
+
+
+
+}catch(error){
+
+
+console.log(
+"Map message error",
+error
 );
 
 
@@ -1398,6 +1562,46 @@ style:"cancel"
 
 
 };
+
+
+
+
+
+
+
+
+if(loading){
+
+
+return (
+
+<View style={styles.loading}>
+
+
+<ActivityIndicator
+
+size="large"
+
+color={colors.primary}
+
+/>
+
+
+<Text style={styles.loadingText}>
+
+Loading map...
+
+</Text>
+
+
+</View>
+
+);
+
+
+}
+
+
 
 
 
@@ -1433,10 +1637,6 @@ style={styles.map}
 
 
 
-
-{/* SEARCH */}
-
-
 <View
 
 style={[
@@ -1446,13 +1646,17 @@ styles.searchBox,
 {
 
 top:
-insets.top + 10
+insets.top+10
 
 }
 
-]}
+]
+
+}
+
 
 >
+
 
 
 <TextInput
@@ -1463,11 +1667,12 @@ onChangeText={setSearch}
 
 placeholder="Search destination"
 
-placeholderTextColor="#aaa"
+placeholderTextColor="#999"
 
 style={styles.input}
 
 />
+
 
 
 
@@ -1498,99 +1703,6 @@ GO
 
 
 
-{/* LIVE FEED */}
-
-
-<View
-
-style={[
-
-styles.feed,
-
-{
-
-top:
-insets.top + 75
-
-}
-
-]}
-
->
-
-
-<Text style={styles.feedTitle}>
-
-🌍 Live Road Feed
-
-</Text>
-
-
-
-<FlatList
-
-data={feed}
-
-keyExtractor={
-item=>item.id
-}
-
-renderItem={({item})=>(
-
-
-<View style={styles.feedItem}>
-
-
-<Text style={styles.feedUser}>
-
-{item.user}
-
-</Text>
-
-
-<Text style={styles.feedMessage}>
-
-{item.type==="traffic"
-?
-"🚗 Traffic"
-:
-item.type==="police"
-?
-"🚓 Police"
-:
-"💥 Crash"}
-
-</Text>
-
-
-<Text style={styles.feedTime}>
-
-{item.time}
-
-</Text>
-
-
-</View>
-
-
-)}
-
-
-/>
-
-
-
-</View>
-
-
-
-
-
-
-
-{/* SPEED */}
-
-
 <View
 
 style={[
@@ -1600,11 +1712,13 @@ styles.stats,
 {
 
 top:
-insets.top + 260
+insets.top+80
 
 }
 
-]}
+]
+
+}
 
 >
 
@@ -1614,6 +1728,7 @@ insets.top + 260
 {distanceKm.toFixed(2)} km
 
 </Text>
+
 
 
 <Text style={styles.stat}>
@@ -1631,19 +1746,16 @@ insets.top + 260
 
 
 
-{/* REPORT BUTTON */}
-
-
 <TouchableOpacity
 
 style={styles.reportButton}
 
-onPress={showReportMenu}
+onPress={reportMenu}
 
 >
 
 
-<Text style={styles.reportText}>
+<Text style={styles.buttonText}>
 
 ⚠️ REPORT
 
@@ -1658,9 +1770,6 @@ onPress={showReportMenu}
 
 
 
-{/* DRIVE BUTTON */}
-
-
 <TouchableOpacity
 
 style={[
@@ -1671,6 +1780,7 @@ tracking &&
 styles.stopButton
 
 ]}
+
 
 onPress={
 
@@ -1686,10 +1796,11 @@ startDrive
 
 }
 
+
 >
 
 
-<Text style={styles.driveText}>
+<Text style={styles.buttonText}>
 
 {
 
@@ -1711,6 +1822,61 @@ tracking
 </TouchableOpacity>
 
 
+
+
+
+
+<View style={styles.feed}>
+
+
+<Text style={styles.feedTitle}>
+
+🌍 Live Feed
+
+</Text>
+
+
+
+<FlatList
+
+data={feed}
+
+keyExtractor={
+item=>item.id
+}
+
+
+renderItem={({item})=>(
+
+<View style={styles.feedItem}>
+
+
+<Text style={styles.feedText}>
+
+{item.type}
+
+{" - "}
+
+{item.user}
+
+</Text>
+
+
+</View>
+
+
+)}
+
+
+/>
+
+
+</View>
+
+
+
+
+
 </View>
 
 );
@@ -1723,16 +1889,41 @@ tracking
 
 
 
+
 const styles = StyleSheet.create({
+
 
 container:{
 
 flex:1,
 
-backgroundColor:
-colors.background,
+backgroundColor:"#000",
 
 },
+
+
+
+loading:{
+
+flex:1,
+
+backgroundColor:"#000",
+
+justifyContent:"center",
+
+alignItems:"center",
+
+},
+
+
+loadingText:{
+
+color:"#fff",
+
+marginTop:10,
+
+},
+
 
 
 map:{
@@ -1742,15 +1933,14 @@ flex:1,
 },
 
 
+
 searchBox:{
 
 position:"absolute",
 
 left:10,
 
-right:10,
-
-height:55,
+right:10,height:55,
 
 backgroundColor:"#111",
 
@@ -1765,103 +1955,39 @@ padding:8,
 },
 
 
+
 input:{
 
 flex:1,
 
 color:"#fff",
 
-fontSize:16,
-
 paddingHorizontal:10,
 
 },
+
 
 
 searchButton:{
 
 backgroundColor:colors.primary,
 
-paddingHorizontal:15,
-
-paddingVertical:10,
+padding:12,
 
 borderRadius:10,
 
 },
 
 
+
 searchText:{
+
+fontWeight:"900",
 
 color:"#000",
 
-fontWeight:"900",
-
 },
 
-
-feed:{
-
-position:"absolute",
-
-left:10,
-
-width:260,
-
-maxHeight:180,
-
-backgroundColor:"rgba(0,0,0,0.75)",
-
-borderRadius:15,
-
-padding:10,
-
-},
-
-
-feedTitle:{
-
-color:colors.primary,
-
-fontWeight:"900",
-
-},
-
-
-feedItem:{
-
-paddingVertical:6,
-
-borderBottomWidth:1,
-
-borderColor:"#333",
-
-},
-
-
-feedUser:{
-
-color:"#fff",
-
-fontWeight:"800",
-
-},
-
-
-feedMessage:{
-
-color:"#ddd",
-
-},
-
-
-feedTime:{
-
-color:"#888",
-
-fontSize:11,
-
-},
 
 
 stats:{
@@ -1870,9 +1996,8 @@ position:"absolute",
 
 right:15,
 
-alignItems:"flex-end",
-
 },
+
 
 
 stat:{
@@ -1886,6 +2011,7 @@ fontWeight:"900",
 },
 
 
+
 reportButton:{
 
 position:"absolute",
@@ -1896,29 +2022,19 @@ bottom:130,
 
 backgroundColor:"#ffcc00",
 
-paddingHorizontal:18,
-
-paddingVertical:12,
+padding:15,
 
 borderRadius:15,
 
 },
 
 
-reportText:{
-
-color:"#000",
-
-fontWeight:"900",
-
-},
-
 
 driveButton:{
 
 position:"absolute",
 
-bottom:50,
+bottom:40,
 
 alignSelf:"center",
 
@@ -1926,11 +2042,12 @@ backgroundColor:colors.primary,
 
 padding:18,
 
-paddingHorizontal:35,
+paddingHorizontal:40,
 
 borderRadius:20,
 
 },
+
 
 
 stopButton:{
@@ -1940,15 +2057,61 @@ backgroundColor:colors.danger,
 },
 
 
-driveText:{
 
-color:"#000",
+buttonText:{
 
 fontWeight:"900",
 
-fontSize:16,
+color:"#000",
 
 },
+
+
+
+feed:{
+
+position:"absolute",
+
+left:10,
+
+bottom:130,
+
+width:230,
+
+backgroundColor:"rgba(0,0,0,0.7)",
+
+padding:10,
+
+borderRadius:15,
+
+},
+
+
+
+feedTitle:{
+
+color:colors.primary,
+
+fontWeight:"900",
+
+},
+
+
+
+feedItem:{
+
+paddingVertical:5,
+
+},
+
+
+
+feedText:{
+
+color:"#fff",
+
+},
+
 
 
 });
