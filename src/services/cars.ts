@@ -11,9 +11,11 @@ import {
 
 import {
   Car,
+} from "../data/cars";
+
+import {
   OwnedCar,
 } from "../types";
-
 
 
 // ---------- Selected Car ----------
@@ -64,10 +66,7 @@ export async function addOwnedCar(
   await updateDoc(
     doc(db, "users", uid),
     {
-
-      ownedCars:
-        arrayUnion(car),
-
+      ownedCars: arrayUnion(car),
     }
   );
 
@@ -108,22 +107,20 @@ export async function verifyCarOwnership(
     await getUserProfile(uid);
 
 
+
   const cars =
     (profile?.ownedCars || []) as OwnedCar[];
 
 
+
   const updatedCars =
-    cars.map((car)=>{
+    cars.map((car) => {
 
-
-      if(car.id === carId){
+      if (car.id === carId) {
 
         return {
-
           ...car,
-
-          verifiedOwnership:true,
-
+          verifiedOwnership: true,
         };
 
       }
@@ -131,24 +128,18 @@ export async function verifyCarOwnership(
 
       return car;
 
-
     });
 
 
 
   await updateDoc(
-    doc(db,"users",uid),
+    doc(db, "users", uid),
     {
-
-      ownedCars:
-        updatedCars,
-
+      ownedCars: updatedCars,
     }
   );
 
-
 }
-
 
 
 
@@ -170,25 +161,23 @@ export async function updateCarsDriven(
 
 
   const carsDriven =
-    profile?.carsDriven || {};
+    {
+      ...(profile?.carsDriven || {}),
+    };
 
 
 
   carsDriven[carId] =
-    (carsDriven[carId] || 0)
-    + distanceKm;
+    (carsDriven[carId] || 0) + distanceKm;
 
 
 
   await updateDoc(
-    doc(db,"users",uid),
+    doc(db, "users", uid),
     {
-
       carsDriven,
-
     }
   );
-
 
 }
 
@@ -199,7 +188,7 @@ export async function updateCarsDriven(
 
 
 export async function getMostDrivenCar(
-  uid:string
+  uid: string
 ) {
 
 
@@ -218,7 +207,7 @@ export async function getMostDrivenCar(
 
 
 
-  if(entries.length === 0){
+  if (entries.length === 0) {
 
     return null;
 
@@ -227,8 +216,8 @@ export async function getMostDrivenCar(
 
 
   entries.sort(
-    (a,b)=>
-      b[1]-a[1]
+    (a, b) =>
+      Number(b[1]) - Number(a[1])
   );
 
 
