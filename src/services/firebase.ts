@@ -857,4 +857,179 @@ export async function getUserChallengeProgress(
 
    d =>
 
-   d.data()
+      d.data() as UserChallengeProgress
+
+ );
+
+}
+
+
+
+
+
+
+
+export async function updateChallengeProgress(
+
+ uid:string,
+
+ challengeId:string,
+
+ progress:number,
+
+ completed:boolean
+
+){
+
+
+ await setDoc(
+
+   doc(
+
+     db,
+
+     "users",
+
+     uid,
+
+     "challenges",
+
+     challengeId
+
+   ),
+
+   {
+
+
+     challengeId,
+
+
+     progress,
+
+
+     completed,
+
+
+     claimed:false,
+
+
+     updatedAt:
+
+       Date.now(),
+
+
+   },
+
+
+   {
+
+     merge:true,
+
+   }
+
+ );
+
+}
+
+
+
+
+
+
+
+export async function claimChallengeReward(
+
+ uid:string,
+
+ challengeId:string,
+
+ xpReward:number
+
+){
+
+
+
+ const profile =
+
+ await getUserProfile(uid);
+
+
+
+ const newXP =
+
+ (profile?.totalXP || 0)
+
+ + xpReward;
+
+
+
+ const newLevel =
+
+ getLevelFromXP(newXP);
+
+
+
+ await updateDoc(
+
+   doc(
+
+     db,
+
+     "users",
+
+     uid,
+
+     "challenges",
+
+     challengeId
+
+   ),
+
+   {
+
+     claimed:true,
+
+   }
+
+ );
+
+
+
+ await updateDoc(
+
+   doc(
+
+     db,
+
+     "users",
+
+     uid
+
+   ),
+
+   {
+
+     totalXP:
+
+       newXP,
+
+
+     level:
+
+       newLevel,
+
+   }
+
+ );
+
+
+
+ return {
+
+   newXP,
+
+   newLevel,
+
+ };
+
+}
