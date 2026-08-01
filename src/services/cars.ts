@@ -1,6 +1,7 @@
 import {
   doc,
   updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 
 import {
@@ -8,15 +9,19 @@ import {
   getUserProfile,
 } from "./firebase";
 
-import { Car } from "../data/cars";
+import {
+  Car,
+  OwnedCar,
+} from "../types";
 
 
 
-// Save the player's selected car
+// ---------- Selected Car ----------
+
 
 export async function saveSelectedCar(
   uid: string,
-  car: Car
+  car: Car | OwnedCar
 ) {
 
   await updateDoc(
@@ -30,7 +35,7 @@ export async function saveSelectedCar(
 
 
 
-// Get selected car
+
 
 export async function getSelectedCar(
   uid: string
@@ -46,31 +51,23 @@ export async function getSelectedCar(
 
 
 
-// Add distance to a driven car
 
-export async function updateCarsDriven(
+
+// ---------- Owned Car System ----------
+
+
+export async function addOwnedCar(
   uid: string,
-  carId: string,
-  distanceKm: number
+  car: OwnedCar
 ) {
-
-  const profile =
-    await getUserProfile(uid);
-
-
-  const carsDriven =
-    profile?.carsDriven || {};
-
-
-  carsDriven[carId] =
-    (carsDriven[carId] || 0)
-    + distanceKm;
-
 
   await updateDoc(
     doc(db, "users", uid),
     {
-      carsDriven,
+
+      ownedCars:
+        arrayUnion(car),
+
     }
   );
 
@@ -78,33 +75,162 @@ export async function updateCarsDriven(
 
 
 
-// Find the car driven the most
 
-export async function getMostDrivenCar(
+
+export async function getOwnedCars(
   uid: string
-) {
+): Promise<OwnedCar[]> {
+
 
   const profile =
     await getUserProfile(uid);
+
+
+  return (
+    profile?.ownedCars || []
+  ) as OwnedCar[];
+
+}
+
+
+
+
+
+
+
+export async function verifyCarOwnership(
+  uid: string,
+  carId: string
+) {
+
+
+  const profile =
+    await getUserProfile(uid);
+
+
+  const cars =
+    (profile?.ownedCars || []) as OwnedCar[];
+
+
+  const updatedCars =
+    cars.map((car)=>{
+
+
+      if(car.id === carId){
+
+        return {
+
+          ...car,
+
+          verifiedOwnership:true,
+
+        };
+
+      }
+
+
+      return car;
+
+
+    });
+
+
+
+  await updateDoc(
+    doc(db,"users",uid),
+    {
+
+      ownedCars:
+        updatedCars,
+
+    }
+  );
+
+
+}
+
+
+
+
+
+
+// ---------- Driven Car Statistics ----------
+
+
+export async function updateCarsDriven(
+  uid: string,
+  carId: string,
+  distanceKm: number
+) {
+
+
+  const profile =
+    await getUserProfile(uid);
+
 
 
   const carsDriven =
     profile?.carsDriven || {};
 
 
+
+  carsDriven[carId] =
+    (carsDriven[carId] || 0)
+    + distanceKm;
+
+
+
+  await updateDoc(
+    doc(db,"users",uid),
+    {
+
+      carsDriven,
+
+    }
+  );
+
+
+}
+
+
+
+
+
+
+
+export async function getMostDrivenCar(
+  uid:string
+) {
+
+
+  const profile =
+    await getUserProfile(uid);
+
+
+
+  const carsDriven =
+    profile?.carsDriven || {};
+
+
+
   const entries =
     Object.entries(carsDriven);
 
 
-  if (entries.length === 0) {
+
+  if(entries.length === 0){
+
     return null;
+
   }
 
 
+
   entries.sort(
-    (a, b) =>
-      b[1] - a[1]
+    (a,b)=>
+      b[1]-a[1]
   );
+
 
 
   return entries[0];
