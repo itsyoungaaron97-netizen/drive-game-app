@@ -9,7 +9,6 @@ export default function MapLibreTest() {
       <Map
         style={styles.map}
         mapStyle="https://tiles.openfreemap.org/styles/liberty"
-        logoEnabled={false}
       />
 
     </View>
