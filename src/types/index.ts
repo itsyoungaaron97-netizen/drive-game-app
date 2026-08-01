@@ -6,6 +6,8 @@ export interface UserProfile {
   totalKm: number;
   totalTrips: number;
   maxSpeed: number;
+  totalXP: number;
+  level: number;
   createdAt: number;
   lastActiveAt: number;
 }
@@ -38,6 +40,7 @@ export interface Trip {
   city?: string;
   state?: string;
   country?: string;
+  xpEarned?: number;
 }
 
 export interface LeaderboardEntry {
@@ -47,6 +50,8 @@ export interface LeaderboardEntry {
   totalKm: number;
   totalTrips: number;
   maxSpeed: number;
+  totalXP?: number;
+  level?: number;
   rank?: number;
 }
 
@@ -57,4 +62,22 @@ export interface Lobby {
   scope: LobbyScope;
   name: string;
   memberCount?: number;
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  type: "distance" | "trips" | "speed" | "time";
+  target: number;
+  xpReward: number;
+  isDaily: boolean;
+}
+
+export interface UserChallengeProgress {
+  challengeId: string;
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+  updatedAt: number;
 }
