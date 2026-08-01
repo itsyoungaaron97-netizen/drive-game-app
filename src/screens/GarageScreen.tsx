@@ -13,6 +13,10 @@ import {
 
 import { cars, Car } from "../data/cars";
 
+import {
+  OwnedCar,
+} from "../types";
+
 
 import {
   colors,
@@ -33,7 +37,7 @@ export default function GarageScreen() {
 
 
   const [selectedCar, setSelectedCar] =
-    useState<Car | null>(null);
+    useState<Car | OwnedCar | null>(null);
 
 
 
