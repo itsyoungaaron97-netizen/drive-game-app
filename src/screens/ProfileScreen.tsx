@@ -26,16 +26,17 @@ import {
 } from "../services/firebase";
 
 
-
 import {
   UserProfile,
   Trip,
 } from "../types";
 
+
 import {
   colors,
   spacing,
 } from "../constants/theme";
+
 
 import {
   format,
@@ -43,23 +44,27 @@ import {
 
 
 
-export default function ProfileScreen() {
+export default function ProfileScreen(){
 
 
   const insets =
     useSafeAreaInsets();
 
 
+
   const [profile,setProfile] =
     useState<UserProfile | null>(null);
+
 
 
   const [trips,setTrips] =
     useState<Trip[]>([]);
 
 
+
   const [loading,setLoading] =
     useState(true);
+
 
 
 
@@ -70,36 +75,59 @@ export default function ProfileScreen() {
       auth.currentUser;
 
 
-    if(!user) return;
+
+    if(!user){
+
+      setLoading(false);
+
+      return;
+
+    }
 
 
 
     (async()=>{
 
 
-      const [
-        p,
-        t
-      ] =
-      await Promise.all([
-
-        getUserProfile(user.uid),
-
-        getUserTrips(
-          user.uid,
-          20
-        ),
-
-      ]);
+      try{
 
 
+        const [
+          p,
+          t
+        ] =
+        await Promise.all([
 
-      setProfile(p);
+          getUserProfile(user.uid),
 
-      setTrips(t);
+          getUserTrips(
+            user.uid,
+            20
+          ),
 
-      setLoading(false);
+        ]);
 
+
+
+        setProfile(p);
+
+        setTrips(t);
+
+
+
+      }catch(e){
+
+
+        console.log(e);
+
+
+      }finally{
+
+
+        setLoading(false);
+
+
+      }
 
 
     })();
@@ -107,6 +135,7 @@ export default function ProfileScreen() {
 
 
   },[]);
+
 
 
 
@@ -128,6 +157,7 @@ export default function ProfileScreen() {
           style:"cancel",
         },
 
+
         {
           text:"Log out",
           style:"destructive",
@@ -144,6 +174,7 @@ export default function ProfileScreen() {
 
 
 
+
   const places = Array.from(
 
     new Set(
@@ -151,7 +182,6 @@ export default function ProfileScreen() {
       trips.map(
 
         t =>
-
         `${t.city || "Unknown"}, ${t.country || ""}`
 
       )
@@ -163,17 +193,17 @@ export default function ProfileScreen() {
 
 
 
+
   const drivenCars = Object.entries(
 
     profile?.carsDriven || {}
 
-  )
-
-  .sort(
+  ).sort(
 
     (a,b)=>b[1]-a[1]
 
   );
+
 
 
 
@@ -197,6 +227,7 @@ export default function ProfileScreen() {
 
     );
 
+
   }
 
 
@@ -212,18 +243,17 @@ export default function ProfileScreen() {
       contentContainerStyle={{
 
         paddingTop:
-        insets.top + spacing.md,
+          insets.top + spacing.md,
 
         paddingBottom:
-        insets.bottom + 80,
+          insets.bottom + 80,
 
         paddingHorizontal:
-        spacing.md,
+          spacing.md,
 
       }}
 
     >
-
 
 
       <Text style={styles.title}>
@@ -232,40 +262,32 @@ export default function ProfileScreen() {
 
 
 
-
       <View style={styles.card}>
+
 
 
         {
           profile?.photoURL ?
 
-          (
+          <Image
 
-            <Image
+            source={{
+              uri:profile.photoURL
+            }}
 
-              source={{
-                uri:profile.photoURL
-              }}
+            style={styles.avatar}
 
-              style={styles.avatar}
-
-            />
-
-          )
+          />
 
           :
 
-          (
+          <View style={styles.avatarPlaceholder}>
 
-            <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>
+              🚗
+            </Text>
 
-              <Text style={styles.avatarText}>
-                🚗
-              </Text>
-
-            </View>
-
-          )
+          </View>
 
         }
 
@@ -276,29 +298,46 @@ export default function ProfileScreen() {
         </Text>
 
 
+
         <Text style={styles.email}>
           {profile?.email}
         </Text>
 
 
 
+        <View style={styles.infoBox}>
 
-        <View style={styles.xpBox}>
-
-
-          <Text style={styles.level}>
-            Level {profile?.level || 1}
+          <Text style={styles.infoTitle}>
+            🌍 Driver Identity
           </Text>
 
 
-          <Text style={styles.xp}>
-            {profile?.totalXP || 0} XP
+          <Text style={styles.info}>
+            Nationality: {profile?.nationality || "Unknown"}
           </Text>
 
 
-        </View>
+          <Text style={styles.info}>
+            Country: {profile?.country || "Unknown"}
+          </Text>
 
 
+          <Text style={styles.info}>
+            State: {profile?.state || "Unknown"}
+          </Text>
+
+
+          <Text style={styles.info}>
+            City: {profile?.city || "Unknown"}
+          </Text>
+
+
+          <Text style={styles.info}>
+            Birth Date: {profile?.birthDate || "Unknown"}
+          </Text>
+
+
+                </View>
 
 
 
@@ -307,41 +346,38 @@ export default function ProfileScreen() {
         </Text>
 
 
+
         {
           profile?.selectedCar ?
 
           (
 
-            <>
+            <View style={styles.carBox}>
 
-            {
-              profile.selectedCar.image &&
-
-              <Image
-
-                source={profile.selectedCar.image}
-
-                style={styles.carImage}
-
-              />
-
-            }
+              <Text style={styles.car}>
+                {profile.selectedCar.brand}{" "}
+                {profile.selectedCar.model}
+              </Text>
 
 
-            <Text style={styles.car}>
-              {profile.selectedCar.brand}{" "}
-              {profile.selectedCar.model}
-            </Text>
+              <Text style={styles.carDetails}>
+                {profile.selectedCar.year}
+              </Text>
 
-            </>
+
+            </View>
 
           )
 
           :
 
-          <Text style={styles.empty}>
-            No car selected
-          </Text>
+          (
+
+            <Text style={styles.empty}>
+              No car selected
+            </Text>
+
+          )
 
         }
 
@@ -351,7 +387,7 @@ export default function ProfileScreen() {
 
 
         <Text style={styles.section}>
-          🏆 Cars Driven Most
+          🏆 Cars Driven
         </Text>
 
 
@@ -369,29 +405,32 @@ export default function ProfileScreen() {
 
           :
 
-          drivenCars.slice(0,5).map(
-            ([carId,count])=>(
+          drivenCars
+          .slice(0,5)
+          .map(([carId,count])=>(
 
-              <View
-                key={carId}
-                style={styles.carRow}
-              >
+            <View
+              key={carId}
+              style={styles.carRow}
+            >
 
-                <Text style={styles.carName}>
-                  {carId}
-                </Text>
+              <Text style={styles.carName}>
+                {carId}
+              </Text>
 
-                <Text style={styles.carCount}>
-                  {count} drives
-                </Text>
 
-              </View>
+              <Text style={styles.carCount}>
+                {count} drives
+              </Text>
 
-            )
 
-          )
+            </View>
+
+          ))
 
         }
+
+
 
 
 
@@ -421,7 +460,9 @@ export default function ProfileScreen() {
               key={index}
               style={styles.place}
             >
+
               📍 {place}
+
             </Text>
 
           ))
@@ -432,9 +473,11 @@ export default function ProfileScreen() {
 
 
 
+
         <Text style={styles.section}>
-          🛣️ Recent Drives
+          🛣 Recent Drives
         </Text>
+
 
 
 
@@ -451,21 +494,28 @@ export default function ProfileScreen() {
 
           :
 
-          trips.map((trip)=>(
+          trips.map(trip=>(
+
 
             <View
+
               key={trip.id}
+
               style={styles.tripCard}
+
             >
+
 
               <Text style={styles.tripTitle}>
                 {trip.city || "Unknown"}
               </Text>
 
 
+
               <Text style={styles.tripText}>
                 {trip.distanceKm.toFixed(2)} km
               </Text>
+
 
 
               <Text style={styles.tripText}>
@@ -476,11 +526,14 @@ export default function ProfileScreen() {
               </Text>
 
 
+
             </View>
+
 
           ))
 
         }
+
 
 
 
@@ -496,7 +549,6 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>
             LOG OUT
           </Text>
-
 
         </TouchableOpacity>
 
@@ -518,178 +570,305 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
 
+
 container:{
+
   flex:1,
+
   backgroundColor:colors.background,
+
 },
 
 
 center:{
+
   justifyContent:"center",
+
   alignItems:"center",
+
 },
 
 
 title:{
+
   color:"#fff",
+
   fontSize:30,
+
   fontWeight:"900",
+
   marginBottom:20,
+
 },
 
 
 card:{
+
   backgroundColor:"#111",
+
   borderRadius:20,
+
   padding:20,
+
 },
 
 
 avatar:{
+
   width:90,
+
   height:90,
+
   borderRadius:45,
+
   alignSelf:"center",
+
 },
 
 
 avatarPlaceholder:{
+
   width:90,
+
   height:90,
+
   borderRadius:45,
+
   backgroundColor:"#333",
+
   justifyContent:"center",
+
   alignItems:"center",
+
   alignSelf:"center",
+
 },
 
 
 avatarText:{
+
   fontSize:40,
+
 },
 
 
 name:{
+
   color:"#fff",
+
   fontSize:22,
+
   fontWeight:"900",
+
   textAlign:"center",
+
   marginTop:10,
+
 },
 
 
 email:{
+
   color:"#aaa",
+
   textAlign:"center",
+
+},
+
+
+identity:{
+
+  marginTop:20,
+
+  backgroundColor:"#222",
+
+  padding:12,
+
+  borderRadius:15,
+
+},
+
+
+identityText:{
+
+  color:"#ddd",
+
+  marginVertical:4,
+
 },
 
 
 xpBox:{
+
   marginTop:20,
+
   backgroundColor:"#222",
+
   padding:15,
+
   borderRadius:15,
+
 },
 
 
 level:{
+
   color:colors.primary,
+
   fontSize:20,
+
   fontWeight:"900",
+
 },
 
 
 xp:{
+
   color:"#fff",
+
 },
 
 
 section:{
+
   color:colors.primary,
+
   fontSize:18,
+
   fontWeight:"900",
+
   marginTop:25,
+
   marginBottom:10,
+
 },
 
 
-carImage:{
-  width:"100%",
-  height:160,
+carBox:{
+
+  backgroundColor:"#222",
+
+  padding:15,
+
   borderRadius:15,
+
 },
 
 
 car:{
+
   color:"#fff",
+
   fontSize:18,
-  fontWeight:"800",
+
+  fontWeight:"900",
+
+},
+
+
+carDetails:{
+
+  color:"#aaa",
+
 },
 
 
 empty:{
+
   color:"#888",
+
 },
 
 
 carRow:{
+
   flexDirection:"row",
+
   justifyContent:"space-between",
+
   paddingVertical:8,
+
   borderBottomWidth:1,
+
   borderColor:"#333",
+
 },
 
 
 carName:{
+
   color:"#fff",
+
 },
 
 
 carCount:{
+
   color:colors.primary,
+
 },
 
 
 place:{
+
   color:"#ddd",
+
   marginVertical:5,
+
 },
 
 
 tripCard:{
+
   backgroundColor:"#222",
+
   padding:12,
+
   borderRadius:12,
+
   marginBottom:8,
+
 },
 
 
 tripTitle:{
+
   color:"#fff",
+
   fontWeight:"900",
+
 },
 
 
 tripText:{
+
   color:"#aaa",
+
 },
 
 
 logout:{
+
   marginTop:30,
+
   backgroundColor:colors.danger,
+
   padding:16,
+
   borderRadius:15,
+
   alignItems:"center",
+
 },
 
 
 logoutText:{
+
   color:"#000",
+
   fontWeight:"900",
+
 },
 
 
 });
-           
