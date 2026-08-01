@@ -473,14 +473,16 @@ export default function ProfileScreen(){
               </Text>
 
 
+<Text style={styles.carDetails}>
 
-              <Text style={styles.carDetails}>
+  {
+    "years" in profile.selectedCar
+      ? profile.selectedCar.years
+      : ""
+  }
 
-                {
-                  profile.selectedCar.years
-                }
-
-              </Text>
+</Text>
+              
 
 
             </View>
