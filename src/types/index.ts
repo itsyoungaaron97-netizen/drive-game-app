@@ -68,6 +68,12 @@ export interface UserProfile {
 
 
 
+  // Personal Information
+
+  birthDate?: string;
+
+
+
   totalKm: number;
 
   totalTrips: number;
