@@ -2,18 +2,12 @@ import React from "react";
 import { StyleSheet, View } from "react-native";
 import MapLibreGL from "@maplibre/maplibre-react-native";
 
-MapLibreGL.setAccessToken(null);
-
 export default function MapLibreTest() {
   return (
     <View style={styles.container}>
       <MapLibreGL.MapView
         style={styles.map}
         styleURL="https://demotiles.maplibre.org/style.json"
-        rotateEnabled={true}
-        scrollEnabled={true}
-        zoomEnabled={true}
-        pitchEnabled={true}
       >
         <MapLibreGL.Camera
           zoomLevel={14}
@@ -33,7 +27,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
   map: {
     flex: 1,
   },
