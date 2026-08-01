@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   View,
@@ -7,7 +10,9 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  Alert,
 } from "react-native";
+
 
 import {
   colors,
@@ -15,35 +20,115 @@ import {
 } from "../constants/theme";
 
 
-
-interface Post {
-
-  id:string;
-
-  username:string;
-
-  text:string;
-
-}
+import {
+  auth,
+} from "../services/firebase";
 
 
+import {
+  createCommunityPost,
+  getCommunityPosts,
+} from "../services/community";
 
-export default function CommunityScreen() {
+
+import {
+  CommunityPost,
+} from "../types";
+
+
+
+
+
+export default function CommunityScreen(){
 
 
   const [text,setText] =
     useState("");
 
 
-
   const [posts,setPosts] =
-    useState<Post[]>([]);
+    useState<CommunityPost[]>([]);
+
+
+  const [loading,setLoading] =
+    useState(true);
 
 
 
 
 
-  const createPost = () => {
+  useEffect(()=>{
+
+
+    loadPosts();
+
+
+  },[]);
+
+
+
+
+
+  const loadPosts = async()=>{
+
+
+    try{
+
+
+      const data =
+        await getCommunityPosts();
+
+
+      setPosts(data);
+
+
+    }catch(error){
+
+
+      console.log(error);
+
+
+    }finally{
+
+
+      setLoading(false);
+
+
+    }
+
+
+  };
+
+
+
+
+
+
+
+  const createPost = async()=>{
+
+
+    const user =
+      auth.currentUser;
+
+
+
+    if(!user){
+
+
+      Alert.alert(
+        "Login required",
+        "You must login first"
+      );
+
+
+      return;
+
+
+    }
+
+
+
 
 
     if(!text.trim()){
@@ -54,36 +139,61 @@ export default function CommunityScreen() {
 
 
 
-    const newPost:Post = {
-
-      id:
-        Date.now().toString(),
-
-      username:
-        "You",
-
-      text:
-        text.trim(),
-
-    };
 
 
-
-    setPosts(
-
-      [
-        newPost,
-
-        ...posts,
-
-      ]
-
-    );
+    try{
 
 
-    setText("");
+      await createCommunityPost({
+
+        userId:
+          user.uid,
+
+
+        displayName:
+          user.displayName || "Driver",
+
+
+        photoURL:
+          user.photoURL || "",
+
+
+        text:
+          text.trim(),
+
+
+        createdAt:
+          Date.now(),
+
+
+      });
+
+
+
+
+
+      setText("");
+
+
+
+      await loadPosts();
+
+
+
+    }catch(error){
+
+
+      Alert.alert(
+        "Error",
+        "Could not create post"
+      );
+
+
+    }
+
 
   };
+
 
 
 
@@ -102,6 +212,8 @@ export default function CommunityScreen() {
 
 
 
+
+
       <View style={styles.box}>
 
 
@@ -113,7 +225,9 @@ export default function CommunityScreen() {
 
           placeholder="Share something..."
 
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={
+            colors.textSecondary
+          }
 
           style={styles.input}
 
@@ -150,7 +264,15 @@ export default function CommunityScreen() {
 
         data={posts}
 
-        keyExtractor={(item)=>item.id}
+        refreshing={loading}
+
+        onRefresh={loadPosts}
+
+
+        keyExtractor={(item)=>
+          item.id
+        }
+
 
 
         renderItem={({item})=>(
@@ -160,7 +282,7 @@ export default function CommunityScreen() {
 
 
             <Text style={styles.username}>
-              {item.username}
+              {item.displayName}
             </Text>
 
 
@@ -168,6 +290,7 @@ export default function CommunityScreen() {
             <Text style={styles.message}>
               {item.text}
             </Text>
+
 
 
           </View>
@@ -183,7 +306,10 @@ export default function CommunityScreen() {
 
   );
 
+
 }
+
+
 
 
 
@@ -196,9 +322,11 @@ container:{
 
   flex:1,
 
-  backgroundColor:colors.background,
+  backgroundColor:
+    colors.background,
 
-  padding:spacing.md,
+  padding:
+    spacing.md,
 
 },
 
@@ -206,13 +334,17 @@ container:{
 
 title:{
 
-  color:colors.primary,
+  color:
+    colors.primary,
 
-  fontSize:28,
+  fontSize:
+    28,
 
-  fontWeight:"900",
+  fontWeight:
+    "900",
 
-  marginBottom:spacing.md,
+  marginBottom:
+    spacing.md,
 
 },
 
@@ -220,11 +352,14 @@ title:{
 
 box:{
 
-  backgroundColor:colors.surface,
+  backgroundColor:
+    colors.surface,
 
-  borderRadius:16,
+  borderRadius:
+    16,
 
-  padding:spacing.md,
+  padding:
+    spacing.md,
 
 },
 
@@ -232,11 +367,14 @@ box:{
 
 input:{
 
-  color:colors.text,
+  color:
+    colors.text,
 
-  minHeight:80,
+  minHeight:
+    80,
 
-  textAlignVertical:"top",
+  textAlignVertical:
+    "top",
 
 },
 
@@ -244,15 +382,20 @@ input:{
 
 button:{
 
-  backgroundColor:colors.primary,
+  backgroundColor:
+    colors.primary,
 
-  padding:12,
+  padding:
+    12,
 
-  borderRadius:10,
+  borderRadius:
+    10,
 
-  alignItems:"center",
+  alignItems:
+    "center",
 
-  marginTop:10,
+  marginTop:
+    10,
 
 },
 
@@ -260,9 +403,11 @@ button:{
 
 buttonText:{
 
-  color:"#000",
+  color:
+    "#000",
 
-  fontWeight:"900",
+  fontWeight:
+    "900",
 
 },
 
@@ -270,13 +415,17 @@ buttonText:{
 
 post:{
 
-  backgroundColor:colors.surface,
+  backgroundColor:
+    colors.surface,
 
-  padding:spacing.md,
+  padding:
+    spacing.md,
 
-  borderRadius:16,
+  borderRadius:
+    16,
 
-  marginTop:spacing.md,
+  marginTop:
+    spacing.md,
 
 },
 
@@ -284,9 +433,11 @@ post:{
 
 username:{
 
-  color:colors.primary,
+  color:
+    colors.primary,
 
-  fontWeight:"900",
+  fontWeight:
+    "900",
 
 },
 
@@ -294,9 +445,11 @@ username:{
 
 message:{
 
-  color:colors.text,
+  color:
+    colors.text,
 
-  marginTop:6,
+  marginTop:
+    6,
 
 },
 
