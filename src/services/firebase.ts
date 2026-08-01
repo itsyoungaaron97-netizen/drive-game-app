@@ -12,7 +12,7 @@ import {
 import {
   initializeAuth,
   getReactNativePersistence,
-} from "firebase/auth/react-native";
+} from "firebase/auth";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
