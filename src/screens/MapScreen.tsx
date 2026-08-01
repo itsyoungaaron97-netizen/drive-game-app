@@ -1940,7 +1940,9 @@ position:"absolute",
 
 left:10,
 
-right:10,height:55,
+right:10,
+
+height:55,
 
 backgroundColor:"#111",
 
