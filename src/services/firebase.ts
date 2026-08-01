@@ -461,7 +461,7 @@ export async function updateCarDriven(
 
 
 
-  await updateDoc(
+   await updateDoc(
 
     doc(
 
@@ -481,8 +481,15 @@ export async function updateCarDriven(
     }
 
   );
+
+
+  return updatedCars;
+
+}
+
+
 // =====================================
-// USER STATS
+// USER STATS 
 // =====================================
 
 export async function updateUserStats(
