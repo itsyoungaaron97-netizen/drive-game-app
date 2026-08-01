@@ -23,13 +23,13 @@ import { createNotification } from "./notifications";
 
 
 
-// Search users by email OR display name
+// Search users by email OR full name
 
 export async function searchUsers(
   text: string
 ): Promise<UserProfile[]> {
 
-  const value = text.trim();
+  const value = text.trim().toLowerCase();
 
   if (!value) {
     return [];
@@ -47,7 +47,7 @@ export async function searchUsers(
     where(
       "email",
       "==",
-      value.toLowerCase()
+      value
     ),
     limit(10)
   );
@@ -56,7 +56,7 @@ export async function searchUsers(
   const nameQuery = query(
     usersRef,
     where(
-      "displayName",
+      "displayNameLower",
       "==",
       value
     ),
@@ -109,6 +109,7 @@ export async function searchUsers(
 
 
   return results;
+
 }
 
 
@@ -202,9 +203,11 @@ export async function sendFriendRequest(
 
       toDisplayName,
 
-      status:"pending",
+      status:
+        "pending",
 
-      createdAt:Date.now(),
+      createdAt:
+        Date.now(),
 
     }
 
@@ -213,8 +216,6 @@ export async function sendFriendRequest(
 
 
 
-
-  // Create notification for receiver
 
   await createNotification(
 
@@ -310,7 +311,8 @@ export async function acceptFriendRequest(
 
     {
 
-      status:"accepted",
+      status:
+        "accepted",
 
     }
 
@@ -337,11 +339,14 @@ export async function acceptFriendRequest(
 
     {
 
-      uid:request.toUid,
+      uid:
+        request.toUid,
 
-      displayName:request.toDisplayName,
+      displayName:
+        request.toDisplayName,
 
-      addedAt:Date.now(),
+      addedAt:
+        Date.now(),
 
     }
 
@@ -368,11 +373,14 @@ export async function acceptFriendRequest(
 
     {
 
-      uid:request.fromUid,
+      uid:
+        request.fromUid,
 
-      displayName:request.fromDisplayName,
+      displayName:
+        request.fromDisplayName,
 
-      addedAt:Date.now(),
+      addedAt:
+        Date.now(),
 
     }
 
