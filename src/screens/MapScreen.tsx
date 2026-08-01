@@ -52,9 +52,41 @@ import {
 
 
 
+// ===============================
+// TYPES
+// ===============================
+
+
+type LocationPoint = {
+  latitude:number;
+  longitude:number;
+};
+
+
+type RoadReport = {
+
+  id:string;
+
+  type:
+  | "traffic"
+  | "police"
+  | "crash";
+
+  latitude:number;
+
+  longitude:number;
+
+  user:string;
+
+  time:string;
+
+};
+
+
+
 
 // ===============================
-// SEARCH ADDRESS
+// SEARCH
 // ===============================
 
 
@@ -64,41 +96,27 @@ async function searchAddress(
 
   try{
 
-
     const response =
       await fetch(
 
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
 
         {
-
           headers:{
-
             "User-Agent":
             "DriveGame-App",
-
           },
-
         }
 
       );
-
 
 
     const data =
       await response.json();
 
 
-
-    if(
-      !data ||
-      !data.length
-    ){
-
+    if(!data || data.length === 0)
       return null;
-
-    }
-
 
 
     return {
@@ -106,10 +124,8 @@ async function searchAddress(
       latitude:
       Number(data[0].lat),
 
-
       longitude:
       Number(data[0].lon),
-
 
       name:
       data[0].display_name,
@@ -119,84 +135,63 @@ async function searchAddress(
 
   }catch(error){
 
-
     console.log(
-      "Search error",
+      "Search error:",
       error
     );
 
-
     return null;
 
-
   }
-
 
 }
 
 
 
-
-
 // ===============================
-// ROUTE SERVICE
+// ROUTE
 // ===============================
 
 
 async function getRoute(
 
- start:{
-  latitude:number;
-  longitude:number;
- },
+ start:LocationPoint,
 
-
- end:{
-  latitude:number;
-  longitude:number;
- }
+ end:LocationPoint
 
 ){
 
 
- try{
+  try{
 
 
-  const url =
+    const url =
 
-
-  `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
-
-
-
-
-  const response =
-    await fetch(url);
+    `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
 
 
 
-  const data =
-    await response.json();
+    const response =
+      await fetch(url);
 
 
 
-  if(
-    !data.routes ||
-    !data.routes.length
-  ){
-
-    return [];
-
-  }
+    const data =
+      await response.json();
 
 
 
-  return (
+    if(
+      !data.routes ||
+      data.routes.length === 0
+    )
+      return [];
 
-    data.routes[0]
+
+
+    return data.routes[0]
     .geometry
     .coordinates
-
     .map(
 
       (point:number[])=>({
@@ -204,68 +199,27 @@ async function getRoute(
         latitude:
         point[1],
 
-
         longitude:
         point[0],
 
       })
 
-    )
-
-  );
+    );
 
 
+  }catch(error){
 
- }catch(error){
+    console.log(
+      "Route error:",
+      error
+    );
 
+    return [];
 
-  console.log(
-    "Route error",
-    error
-  );
-
-
-  return [];
-
-
- }
-
+  }
 
 
 }
-
-
-
-
-
-
-// ===============================
-// ROAD REPORT
-// ===============================
-
-
-type RoadReport = {
-
- id:string;
-
- type:
- "traffic"
- |
- "police"
- |
- "crash";
-
-
- latitude:number;
-
- longitude:number;
-
- user:string;
-
- time:string;
-
-};
-
 
 
 
@@ -275,867 +229,738 @@ type RoadReport = {
 export default function MapScreen(){
 
 
+  const insets =
+    useSafeAreaInsets();
 
-const insets =
-useSafeAreaInsets();
 
+  const webRef =
+    useRef<WebView>(null);
 
 
-const webRef =
-useRef<WebView>(null);
+  const watchRef =
+    useRef<any>(null);
 
 
+  const startTime =
+    useRef<number>(0);
 
-const watchRef =
-useRef<any>(null);
 
+  const latestPoints =
+    useRef<TripPoint[]>([]);
 
 
-const startTime =
-useRef<number>(0);
+  const webReady =
+    useRef(false);
 
 
 
+  const [
+    loading,
+    setLoading
+  ] =
+  useState(true);
 
 
 
+  const [
+    location,
+    setLocation
+  ] =
+  useState<LocationPoint | null>(null);
 
-const [loading,setLoading] =
-useState(true);
 
 
+  const [
+    search,
+    setSearch
+  ] =
+  useState("");
 
-const [location,setLocation] =
-useState<{
 
- latitude:number;
 
- longitude:number;
+  const [
+    route,
+    setRoute
+  ] =
+  useState<LocationPoint[]>([]);
 
-}|null>(null);
 
 
+  const [
+    points,
+    setPoints
+  ] =
+  useState<TripPoint[]>([]);
 
 
-const [selectedReportLocation,setSelectedReportLocation] =
-useState<{
 
- latitude:number;
+  const [
+    distanceKm,
+    setDistanceKm
+  ] =
+  useState(0);
 
- longitude:number;
 
-}|null>(null);
 
+  const [
+    speed,
+    setSpeed
+  ] =
+  useState(0);
 
 
 
-const [search,setSearch] =
-useState("");
+  const [
+    tracking,
+    setTracking
+  ] =
+  useState(false);
 
 
 
-const [route,setRoute] =
-useState<any[]>([]);
+  const [
+    feed,
+    setFeed
+  ] =
+  useState<RoadReport[]>([]);
 
 
 
-const [destination,setDestination] =
-useState<any>(null);
+  const [
+    selectedReportLocation,
+    setSelectedReportLocation
+  ] =
+  useState<LocationPoint | null>(null);
 
 
 
-const [points,setPoints] =
-useState<TripPoint[]>([]);
 
+  const sendToMap =
+  useCallback(
 
+    (data:any)=>{
 
-const [distanceKm,setDistanceKm] =
-useState(0);
+      if(webReady.current){
 
+        webRef.current?.postMessage(
+          JSON.stringify(data)
+        );
 
+      }
 
-const [speed,setSpeed] =
-useState(0);
+    },
 
+    []
 
+  );  useEffect(()=>{
 
-const [tracking,setTracking] =
-useState(false);
+    const loadLocation = async()=>{
 
+      try{
 
+        const permission =
+          await requestLocationPermissions();
 
 
-const [feed,setFeed] =
-useState<RoadReport[]>([]);const sendToMap = (
-data:any
-)=>{
+        if(!permission){
 
+          Alert.alert(
+            "Location required",
+            "Enable location permission"
+          );
 
-webRef.current?.postMessage(
+          return;
 
-JSON.stringify(data)
+        }
 
-);
 
 
-};
+        const position =
+          await getCurrentPosition();
 
 
 
+        if(position){
 
 
+          const current = {
 
+            latitude:
+            position.coords.latitude,
 
-// ===============================
-// LOAD LOCATION
-// ===============================
+            longitude:
+            position.coords.longitude,
 
+          };
 
-useEffect(()=>{
 
 
-const load = async()=>{
+          setLocation(current);
 
 
-try{
 
+          sendToMap({
 
-const permission =
-await requestLocationPermissions();
+            type:"location",
 
+            ...current,
 
+          });
 
-if(!permission){
 
+        }
 
-Alert.alert(
 
-"Location disabled",
+      }catch(error){
 
-"Please enable location permission"
+        console.log(
+          "Location error:",
+          error
+        );
 
-);
 
+      }finally{
 
-return;
+        setLoading(false);
 
+      }
 
-}
 
+    };
 
 
 
-const position =
-await getCurrentPosition();
+    loadLocation();
 
 
 
-if(position){
+    return()=>{
 
+      if(watchRef.current){
 
+        watchRef.current.remove();
 
-const current = {
+      }
 
+    };
 
-latitude:
-position.coords.latitude,
 
+  },[]);
 
-longitude:
-position.coords.longitude,
 
 
-};
 
 
+  const handleSearch =
+  async()=>{
 
-setLocation(current);
 
+    if(!search.trim())
+      return;
 
 
-sendToMap({
 
-type:"location",
+    const result =
+      await searchAddress(search);
 
-...current,
 
-});
 
+    if(!result){
 
+      Alert.alert(
+        "Not found",
+        "Destination unavailable"
+      );
 
-}
+      return;
 
+    }
 
 
-}catch(error){
 
+    if(!location)
+      return;
 
-console.log(error);
 
 
-}finally{
+    const routeData =
+      await getRoute(
 
+        location,
 
-setLoading(false);
+        result
 
+      );
 
-}
 
 
+    setRoute(routeData);
 
-};
 
 
+    sendToMap({
 
-load();
+      type:"route",
 
+      points:routeData,
 
+    });
 
 
-return()=>{
+  };
 
 
-if(watchRef.current){
 
 
-watchRef.current.remove();
 
 
-}
+  const startDrive =
+  useCallback(async()=>{
 
 
-};
+    latestPoints.current = [];
 
+    setPoints([]);
 
-},[]);
+    setDistanceKm(0);
 
+    setSpeed(0);
 
 
 
+    startTime.current =
+      Date.now();
 
 
 
+    setTracking(true);
 
 
-// ===============================
-// SEARCH DESTINATION
-// ===============================
 
 
-const handleSearch =
-async()=>{
+    watchRef.current =
+      await watchPosition(
 
+        (point)=>{
 
-if(!search.trim())
-return;
 
+          latestPoints.current = [
 
+            ...latestPoints.current,
 
-const result =
-await searchAddress(search);
+            point
 
+          ];
 
 
-if(!result){
 
+          setPoints(
+            latestPoints.current
+          );
 
-Alert.alert(
 
-"Not found",
 
-"Could not find destination"
+          const distance =
+            calculateDistanceKm(
+              latestPoints.current
+            );
 
-);
 
 
-return;
+          setDistanceKm(
+            distance
+          );
 
 
-}
 
+          setSpeed(
 
+            Math.round(
 
-setDestination(result);
+              (point.speed || 0)
+              *
+              3.6
 
+            )
 
+          );
 
-if(location){
 
 
-const routeData =
-await getRoute(
+          sendToMap({
 
-location,
+            type:"location",
 
-result
+            latitude:
+            point.latitude,
 
-);
+            longitude:
+            point.longitude,
 
+          });
 
 
-setRoute(routeData);
+        }
 
+      );
 
 
-sendToMap({
+  },[]);
 
-type:"route",
 
-points:routeData,
 
 
-});
 
 
 
-}
+  const stopDrive =
+  async()=>{
 
 
+    if(watchRef.current){
 
-};
+      watchRef.current.remove();
 
+      watchRef.current = null;
 
+    }
 
 
 
+    setTracking(false);
 
 
 
+    const savedPoints =
+      latestPoints.current;
 
-// ===============================
-// START DRIVE
-// ===============================
 
 
-const startDrive =
-useCallback(async()=>{
+    if(savedPoints.length < 2){
 
+      Alert.alert(
+        "Drive too short",
+        "Drive longer before saving"
+      );
 
-setPoints([]);
+      return;
 
-setDistanceKm(0);
+    }
 
-setSpeed(0);
 
 
 
-startTime.current =
-Date.now();
+    const endedAt =
+      Date.now();
 
 
 
-setTracking(true);
+    const duration =
+      Math.round(
 
+        (
+          endedAt -
+          startTime.current
 
+        ) / 1000
 
+      );
 
 
-watchRef.current =
 
-await watchPosition(
+    const maxSpeed =
+      calculateMaxSpeedKmh(
+        savedPoints
+      );
 
-(point)=>{
 
 
+    const avgSpeed =
+      calculateAvgSpeedKmh(
 
-setPoints(old=>{
+        distanceKm,
 
+        duration
 
-const updated = [
+      );
 
-...old,
 
-point
 
-];
+    const user =
+      auth.currentUser;
 
 
 
-setDistanceKm(
+    if(!user)
+      return;
 
-calculateDistanceKm(updated)
 
-);
 
+    let place:any = {};
 
 
-return updated;
 
+    try{
 
-});
+      place =
+        await reverseGeocode(
 
+          savedPoints[0].latitude,
 
+          savedPoints[0].longitude
 
+        )
+        || {};
 
+    }catch(error){
 
-setSpeed(
+      console.log(
+        "Geocode error",
+        error
+      );
 
-Math.round(
+    }
 
-(point.speed || 0)
-*
-3.6
 
-)
 
-);
 
 
 
+    try{
 
-sendToMap({
 
-type:"location",
+      await saveTrip({
 
-latitude:
-point.latitude,
+        userId:
+        user.uid,
 
 
-longitude:
-point.longitude,
+        userDisplayName:
+        user.displayName || "Driver",
 
 
-});
+        startedAt:
+        startTime.current,
 
 
+        endedAt,
 
-}
 
+        distanceKm,
 
 
-);
+        durationSeconds:
+        duration,
 
 
+        avgSpeedKmh:
+        avgSpeed,
 
-},[]);
 
+        maxSpeedKmh:
+        maxSpeed,
 
 
+        route:
+        savedPoints,
 
 
+        city:
+        place.city || "",
 
 
+        state:
+        place.state || "",
 
 
+        country:
+        place.country || "",
 
 
+      });
 
-// ===============================
-// STOP DRIVE
-// ===============================
 
 
-const stopDrive =
-async()=>{
 
 
-if(watchRef.current){
+      const result =
+        await updateUserStats(
 
+          user.uid,
 
-watchRef.current.remove();
+          distanceKm,
 
+          maxSpeed
 
-watchRef.current=null;
+        );
 
 
-}
 
 
 
-setTracking(false);
+      Alert.alert(
 
+        "Drive Saved",
 
+        `${distanceKm.toFixed(2)} km\n+${result.xpGained} XP`
 
-if(points.length < 2){
+      );
 
 
-Alert.alert(
 
-"Drive too short",
+    }catch(error:any){
 
-"Drive longer before saving"
 
-);
+      Alert.alert(
 
+        "Save failed",
 
+        error.message ||
+        "Unknown error"
 
-return;
+      );
 
 
-}
+    }
 
 
 
+    latestPoints.current = [];
 
+    setPoints([]);
 
-const endedAt =
-Date.now();
+    setDistanceKm(0);
 
+    setSpeed(0);
 
 
-const duration =
-Math.round(
+  };
 
-(endedAt -
-startTime.current)
-/1000
 
-);
 
 
 
 
 
-const maxSpeed =
-calculateMaxSpeedKmh(
-points
-);
+  const createReport =
+  (
+    type:
+    "traffic"
+    |
+    "police"
+    |
+    "crash"
+  )=>{
 
 
+    const target =
+      selectedReportLocation ||
+      location;
 
 
-const avgSpeed =
-calculateAvgSpeedKmh(
 
-distanceKm,
+    if(!target)
+      return;
 
-duration
 
-);
 
 
+    const report:RoadReport = {
 
 
+      id:
+      Date.now().toString(),
 
-const user =
-auth.currentUser;
 
+      type,
 
 
-if(!user)
-return;
+      latitude:
+      target.latitude,
 
 
+      longitude:
+      target.longitude,
 
 
+      user:
+      auth.currentUser?.displayName ||
+      "Driver",
 
 
+      time:
+      "now",
 
-let place:any = {};
+    };
 
 
 
-try{
+    setFeed(old=>[
 
+      report,
 
-place =
-await reverseGeocode(
+      ...old
 
-points[0].latitude,
+    ]);
 
-points[0].longitude
 
-) || {};
 
+    sendToMap({
 
+      type:"report",
 
-}catch(e){
+      report,
 
+    });
 
-console.log(
-"Reverse geocode failed"
-);
 
 
-}
+    setSelectedReportLocation(null);
 
 
+  };
 
 
 
 
 
+  const showReportMenu = ()=>{
 
-try{
 
+    Alert.alert(
 
+      "Road report",
 
-await saveTrip({
+      "Select event",
 
-userId:
-user.uid,
+      [
 
+        {
+          text:"🚗 Traffic",
+          onPress:()=>createReport("traffic"),
+        },
 
-userDisplayName:
-user.displayName || "Driver",
+        {
+          text:"🚓 Police",
+          onPress:()=>createReport("police"),
+        },
 
+        {
+          text:"💥 Crash",
+          onPress:()=>createReport("crash"),
+        },
 
-startedAt:
-startTime.current,
+        {
+          text:"Cancel",
+          style:"cancel",
+        },
 
+      ]
 
-endedAt,
+    );
 
 
-distanceKm,
-
-
-durationSeconds:
-duration,
-
-
-avgSpeedKmh:
-avgSpeed,
-
-
-maxSpeedKmh:
-maxSpeed,
-
-
-route:
-points,
-
-
-city:
-place.city || "",
-
-
-state:
-place.state || "",
-
-
-country:
-place.country || "",
-
-
-});
-
-
-
-
-
-const result =
-await updateUserStats(
-
-user.uid,
-
-distanceKm,
-
-maxSpeed
-
-);
-
-
-
-
-
-Alert.alert(
-
-"Drive Saved",
-
-`${distanceKm.toFixed(2)} km\n+${result.xpGained} XP`
-
-);
-
-
-
-
-}catch(error:any){
-
-
-Alert.alert(
-
-"Save failed",
-
-error.message ||
-"Unknown error"
-
-);
-
-
-}
-
-
-
-
-
-setPoints([]);
-
-setDistanceKm(0);
-
-setSpeed(0);
-
-
-
-};
-
-
-
-
-
-
-
-
-// ===============================
-// CREATE REPORT
-// ===============================
-
-
-const createReport =
-(type:
-"traffic"
-|
-"police"
-|
-"crash"
-)=>{
-
-
-const target =
-selectedReportLocation ||
-location;
-
-
-
-if(!target)
-return;
-
-
-
-
-const report:RoadReport = {
-
-
-id:
-Date.now().toString(),
-
-
-type,
-
-
-latitude:
-target.latitude,
-
-
-longitude:
-target.longitude,
-
-
-user:
-auth.currentUser?.displayName ||
-"Driver",
-
-
-time:
-"now",
-
-
-};
-
-
-
-
-
-setFeed(old=>[
-
-report,
-
-...old
-
-]);
-
-
-
-
-sendToMap({
-
-type:"report",
-
-report,
-
-});
-
-
-
-
-setSelectedReportLocation(null);
-
-
-
-Alert.alert(
-
-"Report sent",
-
-type.toUpperCase()
-
-);
-
-
-
-};
-
-
-
-
-
-
-
-
-const reportMenu =
-()=>{
-
-
-Alert.alert(
-
-"Road report",
-
-"Choose event",
-
-[
-
-
-{
-
-text:"🚗 Traffic",
-
-onPress:()=>createReport("traffic"),
-
-},
-
-
-{
-
-text:"🚓 Police",
-
-onPress:()=>createReport("police"),
-
-},
-
-
-{
-
-text:"💥 Crash",
-
-onPress:()=>createReport("crash"),
-
-},
-
-
-{
-
-text:"Cancel",
-
-style:"cancel",
-
-},
-
-
-]
-
-);
-
-
-};const html = `
+  };  const html = `
 
 <!DOCTYPE html>
 
@@ -1145,10 +970,8 @@ style:"cancel",
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-
 <link rel="stylesheet"
 href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
 
 <style>
 
@@ -1164,9 +987,7 @@ padding:0;
 
 </style>
 
-
 </head>
-
 
 
 <body>
@@ -1175,9 +996,7 @@ padding:0;
 <div id="map"></div>
 
 
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 
 
 <script>
@@ -1185,10 +1004,7 @@ padding:0;
 
 const map =
 L.map("map")
-.setView(
-[0,0],
-15
-);
+.setView([0,0],15);
 
 
 
@@ -1206,26 +1022,17 @@ maxZoom:19
 
 
 
-
-
 let marker=null;
 
 
 let routeLine =
-L.polyline(
-
-[],
-
-{
+L.polyline([],{
 
 color:"#00ff99",
 
 weight:5
 
-}
-
-).addTo(map);
-
+}).addTo(map);
 
 
 
@@ -1235,12 +1042,8 @@ L.layerGroup()
 
 
 
-
-
-function carIcon(){
-
-
-return L.divIcon({
+const carIcon =
+L.divIcon({
 
 html:"🚗",
 
@@ -1249,13 +1052,6 @@ className:"",
 iconSize:[40,40]
 
 });
-
-
-}
-
-
-
-
 
 
 
@@ -1288,10 +1084,6 @@ longitude:e.latlng.lng
 
 
 
-
-
-
-
 document.addEventListener(
 
 "message",
@@ -1301,8 +1093,6 @@ document.addEventListener(
 
 const data =
 JSON.parse(event.data);
-
-
 
 
 
@@ -1329,7 +1119,6 @@ pos,
 
 
 
-
 if(marker)
 
 map.removeLayer(marker);
@@ -1343,7 +1132,7 @@ pos,
 
 {
 
-icon:carIcon()
+icon:carIcon
 
 }
 
@@ -1359,13 +1148,11 @@ icon:carIcon()
 
 
 
-
 if(data.type==="route"){
 
 
 
 const coords =
-
 data.points.map(
 
 p=>[
@@ -1397,31 +1184,11 @@ routeLine.getBounds()
 
 
 
-
-
-
-
 if(data.type==="report"){
 
 
 const r =
 data.report;
-
-
-
-let emoji="⚠️";
-
-
-
-if(r.type==="traffic")
-emoji="🚗";
-
-if(r.type==="police")
-emoji="🚓";
-
-if(r.type==="crash")
-emoji="💥";
-
 
 
 
@@ -1441,7 +1208,7 @@ r.longitude
 
 .bindPopup(
 
-emoji+" "+r.type
+r.type
 
 );
 
@@ -1450,13 +1217,11 @@ emoji+" "+r.type
 
 
 
-
-
 }
 
 
-);
 
+);
 
 
 </script>
@@ -1474,271 +1239,294 @@ emoji+" "+r.type
 
 
 
+  const handleMapMessage =
+  (event:any)=>{
 
 
-const handleMapMessage =
-(event:any)=>{
+    try{
 
 
-try{
+      const data =
+      JSON.parse(
 
+        event.nativeEvent.data
 
-const data =
-JSON.parse(
+      );
 
-event.nativeEvent.data
 
-);
 
+      if(data.type==="mapClick"){
 
 
 
-if(data.type==="mapClick"){
+        setSelectedReportLocation({
 
+          latitude:
+          data.latitude,
 
+          longitude:
+          data.longitude,
 
-setSelectedReportLocation({
+        });
 
-latitude:
-data.latitude,
 
 
-longitude:
-data.longitude,
+        Alert.alert(
 
+          "Report location",
 
-});
+          "Use this location?",
 
+          [
 
+            {
+              text:"Yes",
+              onPress:showReportMenu,
+            },
 
-Alert.alert(
+            {
+              text:"Cancel",
+              style:"cancel",
+            }
 
-"Report location",
+          ]
 
-"Use this location?",
+        );
 
-[
+      }
 
 
-{
 
-text:"Yes",
+    }catch(error){
 
-onPress:reportMenu,
+      console.log(
+        "WebView error",
+        error
+      );
 
-},
+    }
 
 
-{
+  };
 
-text:"Cancel",
 
-style:"cancel",
 
-},
 
 
-]
 
-);
 
+  if(loading){
 
 
-}
+    return(
 
+      <View style={styles.loading}>
 
 
-}catch(error){
+        <ActivityIndicator
 
+        size="large"
 
-console.log(
-"Map message error",
-error
-);
+        color={colors.primary}
 
+        />
 
-}
 
+        <Text style={styles.loadingText}>
 
+          Loading map...
 
-};
+        </Text>
 
 
+      </View>
 
+    );
 
+  }
 
 
 
 
-if(loading){
 
 
-return (
 
-<View style={styles.loading}>
+  return(
 
+    <View style={styles.container}>
 
-<ActivityIndicator
 
-size="large"
+      <WebView
 
-color={colors.primary}
+      ref={webRef}
 
-/>
+      source={{
+        html
+      }}
 
+      javaScriptEnabled
 
-<Text style={styles.loadingText}>
+      originWhitelist={["*"]}
 
-Loading map...
+      onLoad={()=>{
 
-</Text>
+        webReady.current=true;
 
+      }}
 
-</View>
+      onMessage={handleMapMessage}
 
-);
+      style={styles.map}
 
+      />
 
-}
 
 
 
 
+      <View
 
+      style={[
 
+        styles.searchBox,
 
+        {
+          top:
+          insets.top+10
+        }
 
-return (
+      ]}
 
-<View style={styles.container}>
+      >
 
 
-<WebView
+        <TextInput
 
-ref={webRef}
+        value={search}
 
-source={{
+        onChangeText={setSearch}
 
-html
+        placeholder="Search destination"
 
-}}
+        placeholderTextColor="#999"
 
-originWhitelist={["*"]}
+        style={styles.input}
 
-javaScriptEnabled
+        />
 
-onMessage={handleMapMessage}
 
-style={styles.map}
+        <TouchableOpacity
 
-/>
+        onPress={handleSearch}
 
+        style={styles.searchButton}
 
+        >
 
+          <Text style={styles.buttonText}>
+          GO
+          </Text>
 
+        </TouchableOpacity>
 
-<View
 
-style={[
+      </View>
 
-styles.searchBox,
 
-{
 
-top:
-insets.top+10
 
-}
 
-]
 
-}
+      <View style={[
 
+        styles.stats,
 
->
+        {
+          top:
+          insets.top+80
+        }
 
+      ]}>
 
 
-<TextInput
+        <Text style={styles.stat}>
 
-value={search}
+        {distanceKm.toFixed(2)} km
 
-onChangeText={setSearch}
+        </Text>
 
-placeholder="Search destination"
 
-placeholderTextColor="#999"
 
-style={styles.input}
+        <Text style={styles.stat}>
 
-/>
+        {speed} km/h
 
+        </Text>
 
 
+      </View>
 
-<TouchableOpacity
 
-style={styles.searchButton}
 
-onPress={handleSearch}
 
->
 
 
-<Text style={styles.searchText}>
 
-GO
+      <View style={styles.feed}>
 
-</Text>
 
+        <Text style={styles.feedTitle}>
 
-</TouchableOpacity>
+        🌍 Live Feed
 
+        </Text>
 
-</View>
 
 
+        <FlatList
 
+        data={feed}
 
+        keyExtractor={
+          item=>item.id
+        }
 
+        renderItem={({item})=>(
 
+          <Text style={styles.feedText}>
 
-<View
+          {item.type} - {item.user}
 
-style={[
+          </Text>
 
-styles.stats,
+        )}
 
-{
+        />
 
-top:
-insets.top+80
+      </View>
 
-}
 
-]
 
-}
 
->
 
 
-<Text style={styles.stat}>
 
-{distanceKm.toFixed(2)} km
+      <TouchableOpacity
 
-</Text>
+      style={styles.reportButton}
 
+      onPress={showReportMenu}
 
+      >
 
-<Text style={styles.stat}>
+        <Text style={styles.buttonText}>
 
-{speed} km/h
+        ⚠️ REPORT
 
-</Text>
+        </Text>
 
+      </TouchableOpacity>
 
-</View>
 
 
 
@@ -1746,140 +1534,60 @@ insets.top+80
 
 
 
-<TouchableOpacity
+      <TouchableOpacity
 
-style={styles.reportButton}
+      style={[
 
-onPress={reportMenu}
+        styles.driveButton,
 
->
+        tracking &&
+        styles.stopButton
 
+      ]}
 
-<Text style={styles.buttonText}>
+      onPress={
 
-⚠️ REPORT
+        tracking
 
-</Text>
+        ?
 
+        stopDrive
 
-</TouchableOpacity>
+        :
 
+        startDrive
 
+      }
 
+      >
 
+        <Text style={styles.buttonText}>
 
+        {
 
+        tracking
 
-<TouchableOpacity
+        ?
 
-style={[
+        "END DRIVE"
 
-styles.driveButton,
+        :
 
-tracking &&
-styles.stopButton
+        "START DRIVE"
 
-]}
+        }
 
+        </Text>
 
-onPress={
+      </TouchableOpacity>
 
-tracking
 
-?
 
-stopDrive
 
-:
+    </View>
 
-startDrive
+  );
 
-}
-
-
->
-
-
-<Text style={styles.buttonText}>
-
-{
-
-tracking
-
-?
-
-"END DRIVE"
-
-:
-
-"START DRIVE"
-
-}
-
-</Text>
-
-
-</TouchableOpacity>
-
-
-
-
-
-
-<View style={styles.feed}>
-
-
-<Text style={styles.feedTitle}>
-
-🌍 Live Feed
-
-</Text>
-
-
-
-<FlatList
-
-data={feed}
-
-keyExtractor={
-item=>item.id
-}
-
-
-renderItem={({item})=>(
-
-<View style={styles.feedItem}>
-
-
-<Text style={styles.feedText}>
-
-{item.type}
-
-{" - "}
-
-{item.user}
-
-</Text>
-
-
-</View>
-
-
-)}
-
-
-/>
-
-
-</View>
-
-
-
-
-
-</View>
-
-);
 
 }
 
@@ -1914,6 +1622,7 @@ justifyContent:"center",
 alignItems:"center",
 
 },
+
 
 
 loadingText:{
@@ -1982,11 +1691,11 @@ borderRadius:10,
 
 
 
-searchText:{
-
-fontWeight:"900",
+buttonText:{
 
 color:"#000",
+
+fontWeight:"900",
 
 },
 
@@ -2009,6 +1718,46 @@ color:colors.primary,
 fontSize:22,
 
 fontWeight:"900",
+
+},
+
+
+
+feed:{
+
+position:"absolute",
+
+left:10,
+
+bottom:140,
+
+width:230,
+
+backgroundColor:"rgba(0,0,0,0.7)",
+
+padding:10,
+
+borderRadius:15,
+
+},
+
+
+
+feedTitle:{
+
+color:colors.primary,
+
+fontWeight:"900",
+
+},
+
+
+
+feedText:{
+
+color:"#fff",
+
+paddingVertical:4,
 
 },
 
@@ -2042,7 +1791,7 @@ alignSelf:"center",
 
 backgroundColor:colors.primary,
 
-padding:18,
+paddingVertical:18,
 
 paddingHorizontal:40,
 
@@ -2057,63 +1806,6 @@ stopButton:{
 backgroundColor:colors.danger,
 
 },
-
-
-
-buttonText:{
-
-fontWeight:"900",
-
-color:"#000",
-
-},
-
-
-
-feed:{
-
-position:"absolute",
-
-left:10,
-
-bottom:130,
-
-width:230,
-
-backgroundColor:"rgba(0,0,0,0.7)",
-
-padding:10,
-
-borderRadius:15,
-
-},
-
-
-
-feedTitle:{
-
-color:colors.primary,
-
-fontWeight:"900",
-
-},
-
-
-
-feedItem:{
-
-paddingVertical:5,
-
-},
-
-
-
-feedText:{
-
-color:"#fff",
-
-},
-
 
 
 });
