@@ -201,7 +201,7 @@ useSafeAreaInsets();
 
 
 const webRef =
-useRef<WebView>(null);
+useRef<any>(null);
 
 
 const watchRef =
