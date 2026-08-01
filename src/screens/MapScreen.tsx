@@ -1,14 +1,31 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
+
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  TextInput,
   Alert,
+  FlatList,
 } from "react-native";
 
 import { WebView } from "react-native-webview";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import {
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
+import {
+  auth,
+  saveTrip,
+  updateUserStats,
+} from "../services/firebase";
 
 import {
   requestLocationPermissions,
@@ -21,252 +38,1783 @@ import {
 } from "../services/location";
 
 import {
-  saveTrip,
-  updateUserStats,
-  auth,
-} from "../services/firebase";
+  TripPoint,
+} from "../types";
 
-import { TripPoint } from "../types";
-import { colors, spacing } from "../constants/theme";
+import {
+  colors,
+  spacing,
+} from "../constants/theme";
 
-export default function MapScreen() {
-  const insets = useSafeAreaInsets();
 
-  const webRef = useRef<WebView>(null);
-  const watchSub = useRef<any>(null);
-  const startTime = useRef(0);
 
-  const [isTracking, setIsTracking] = useState(false);
-  const [points, setPoints] = useState<TripPoint[]>([]);
-  const [distanceKm, setDistanceKm] = useState(0);
-  const [speed, setSpeed] = useState(0);
-  const [location, setLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+// ===============================
+// MAP SEARCH SERVICE
+// ===============================
 
-  useEffect(() => {
-    (async () => {
-      const ok = await requestLocationPermissions();
 
-      if (!ok) {
-        Alert.alert("Location needed", "Please allow location access.");
-        return;
+async function searchAddress(
+  address:string
+){
+
+  const url =
+  `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+
+
+  const response =
+    await fetch(
+      url,
+      {
+        headers:{
+          "User-Agent":
+          "DriveGame-App",
+        },
       }
-
-      const pos = await getCurrentPosition();
-
-      if (pos) {
-        const loc = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        };
-
-        setLocation(loc);
-
-        webRef.current?.postMessage(
-          JSON.stringify({
-            type: "location",
-            ...loc,
-          })
-        );
-      }
-    })();
-
-    return () => {
-      watchSub.current?.remove();
-    };
-  }, []);
-
-  const sendRouteToMap = (route: TripPoint[]) => {
-    webRef.current?.postMessage(
-      JSON.stringify({
-        type: "route",
-        points: route,
-      })
-    );
-  };
-
-  const startDrive = useCallback(async () => {
-    setPoints([]);
-    setDistanceKm(0);
-    setSpeed(0);
-
-    startTime.current = Date.now();
-    setIsTracking(true);
-
-    watchSub.current = await watchPosition((point) => {
-      setPoints((old) => {
-        const updated = [...old, point];
-        setDistanceKm(calculateDistanceKm(updated));
-        sendRouteToMap(updated);
-        return updated;
-      });
-
-      if (point.speed !== undefined && point.speed !== null) {
-        setSpeed(Math.round(point.speed * 3.6));
-      }
-
-      setLocation({
-        latitude: point.latitude,
-        longitude: point.longitude,
-      });
-    });
-  }, []);
-
-  const stopDrive = async () => {
-    watchSub.current?.remove();
-    watchSub.current = null;
-    setIsTracking(false);
-
-    if (points.length < 2) {
-      Alert.alert("Drive too short", "Drive longer before saving.");
-      return;
-    }
-
-    const endTime = Date.now();
-    const duration = Math.round((endTime - startTime.current) / 1000);
-    const maxSpeed = calculateMaxSpeedKmh(points);
-    const avgSpeed = calculateAvgSpeedKmh(distanceKm, duration);
-
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const place = await reverseGeocode(
-      points[0].latitude,
-      points[0].longitude
     );
 
-    try {
-      await saveTrip({
-        userId: user.uid,
-        userDisplayName: user.displayName || "Driver",
-        startedAt: startTime.current,
-        endedAt: endTime,
-        distanceKm,
-        durationSeconds: duration,
-        avgSpeedKmh: avgSpeed,
-        maxSpeedKmh: maxSpeed,
-        route: points,
-        city: place.city,
-        state: place.state,
-        country: place.country,
-      });
 
-      // This now returns XP info
-      const result = await updateUserStats(user.uid, distanceKm, maxSpeed);
+  const data =
+    await response.json();
 
-      Alert.alert(
-        "Drive saved!",
-        `${distanceKm.toFixed(2)} km • max \( {maxSpeed} km/h\n+ \){result.xpGained} XP  |  Level ${result.newLevel}`
-      );
-    } catch (e: any) {
-      Alert.alert("Error", e.message || "Could not save drive");
-    }
 
-    setPoints([]);
-    setDistanceKm(0);
-    setSpeed(0);
+
+  if(!data.length)
+    return null;
+
+
+
+  return {
+
+    latitude:
+      Number(data[0].lat),
+
+    longitude:
+      Number(data[0].lon),
+
+    name:
+      data[0].display_name,
+
   };
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-<style>
-html,body,#map{height:100%;margin:0;padding:0;}
-</style>
-</head>
-<body>
-<div id="map"></div>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-const map = L.map('map').setView([0,0],15);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-let marker;
-let line = L.polyline([]).addTo(map);
-
-document.addEventListener("message", function(event){
-  const data = JSON.parse(event.data);
-
-  if(data.type==="location"){
-    map.setView([data.latitude,data.longitude],15);
-    if(marker) map.removeLayer(marker);
-    marker = L.marker([data.latitude,data.longitude]).addTo(map);
-  }
-
-  if(data.type==="route"){
-    const coords = data.points.map(p => [p.latitude, p.longitude]);
-    line.setLatLngs(coords);
-    if(coords.length > 1) map.fitBounds(line.getBounds());
-  }
-});
-</script>
-</body>
-</html>
-`;
-
-  return (
-    <View style={styles.container}>
-      <WebView
-        ref={webRef}
-        originWhitelist={["*"]}
-        source={{ html }}
-        javaScriptEnabled
-        style={styles.map}
-      />
-
-      <View style={[styles.stats, { paddingTop: insets.top + 10 }]}>
-        <Text style={styles.stat}>{distanceKm.toFixed(2)} km</Text>
-        <Text style={styles.stat}>{speed} km/h</Text>
-      </View>
-
-      <TouchableOpacity
-        style={[styles.button, isTracking && styles.buttonStop]}
-        onPress={isTracking ? stopDrive : startDrive}
-      >
-        <Text style={styles.buttonText}>
-          {isTracking ? "END DRIVE" : "START DRIVE"}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  map: {
-    flex: 1,
-  },
-  stats: {
-    position: "absolute",
-    top: 0,
-    width: "100%",
-    alignItems: "center",
-  },
-  stat: {
-    color: colors.primary,
-    fontSize: 22,
-    fontWeight: "bold",
-  },
-  button: {
-    position: "absolute",
-    bottom: 50,
-    alignSelf: "center",
-    backgroundColor: colors.primary,
-    padding: spacing.lg,
-    borderRadius: 15,
-  },
-  buttonStop: {
-    backgroundColor: colors.danger,
-  },
-  buttonText: {
-    color: "#000",
-    fontWeight: "900",
-  },
+
+
+
+// ===============================
+// ROUTE SERVICE
+// ===============================
+
+
+async function getRoute(
+
+ start:{
+  latitude:number;
+  longitude:number;
+ },
+
+ end:{
+  latitude:number;
+  longitude:number;
+ }
+
+){
+
+
+ const url =
+
+ `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
+
+
+
+ const response =
+ await fetch(url);
+
+
+
+ const data =
+ await response.json();
+
+
+
+ if(
+ !data.routes ||
+ !data.routes.length
+ )
+ return [];
+
+
+
+ return data.routes[0]
+ .geometry
+ .coordinates
+ .map(
+ (c:number[])=>({
+
+ latitude:c[1],
+
+ longitude:c[0],
+
+ })
+ );
+
+
+}
+
+
+
+
+
+// ===============================
+// REPORT TYPES
+// ===============================
+
+
+type RoadReport = {
+
+ id:string;
+
+ type:
+ "traffic"
+ |
+ "police"
+ |
+ "crash";
+
+ latitude:number;
+
+ longitude:number;
+
+ user:string;
+
+ time:string;
+
+};
+
+
+
+
+
+
+export default function MapScreen(){
+
+
+
+const insets =
+useSafeAreaInsets();
+
+
+
+const webRef =
+useRef<WebView>(null);
+
+
+
+const watchRef =
+useRef<any>(null);
+
+
+
+const startTime =
+useRef(0);
+
+
+
+
+// ===============================
+// STATES
+// ===============================
+
+
+const [location,setLocation] =
+useState<{
+latitude:number;
+longitude:number;
+}|null>(null);
+
+
+
+const [search,setSearch] =
+useState("");
+
+
+
+const [destination,setDestination] =
+useState<any>(null);
+
+
+
+const [route,setRoute] =
+useState<any[]>([]);
+
+
+
+const [points,setPoints] =
+useState<TripPoint[]>([]);
+
+
+
+const [distanceKm,setDistanceKm] =
+useState(0);
+
+
+
+const [speed,setSpeed] =
+useState(0);
+
+
+
+const [tracking,setTracking] =
+useState(false);
+
+
+
+const [feed,setFeed] =
+useState<RoadReport[]>([
+
+{
+id:"1",
+type:"traffic",
+latitude:0,
+longitude:0,
+user:"Alex",
+time:"2 min ago",
+},
+
+{
+id:"2",
+type:"police",
+latitude:0,
+longitude:0,
+user:"Marco",
+time:"5 min ago",
+},
+
+]);
+
+
+
+
+// ===============================
+// INITIAL LOCATION
+// ===============================
+
+
+useEffect(()=>{
+
+
+(async()=>{
+
+
+const allowed =
+await requestLocationPermissions();
+
+
+
+if(!allowed){
+
+Alert.alert(
+"Location required",
+"Enable location permission"
+);
+
+return;
+
+}
+
+
+
+const pos =
+await getCurrentPosition();
+
+
+
+if(pos){
+
+
+const loc={
+
+latitude:
+pos.coords.latitude,
+
+longitude:
+pos.coords.longitude,
+
+};
+
+
+
+setLocation(loc);
+
+
+
+webRef.current?.postMessage(
+
+JSON.stringify({
+
+type:"location",
+
+...loc,
+
+})
+
+);
+
+
+
+}
+
+
+
+})();
+
+
+
+return()=>{
+
+watchRef.current?.remove();
+
+};
+
+
+},[]);
+
+
+
+
+
+
+// ===============================
+// SEARCH DESTINATION
+// ===============================
+
+
+const handleSearch =
+async()=>{
+
+
+if(!search.trim())
+return;
+
+
+
+const result =
+await searchAddress(search);
+
+
+
+if(!result){
+
+Alert.alert(
+"Not found",
+"Address unavailable"
+);
+
+return;
+
+}
+
+
+
+setDestination(result);
+
+
+
+if(location){
+
+
+const newRoute =
+await getRoute(
+
+location,
+
+result
+
+);
+
+
+
+setRoute(newRoute);
+
+
+
+webRef.current?.postMessage(
+
+JSON.stringify({
+
+type:"route",
+
+points:newRoute,
+
+})
+
+);
+
+
+
+}
+
+
+
+};
+
+
+
+
+// ===============================
+// START DRIVE
+// ===============================
+
+
+const startDrive =
+useCallback(async()=>{
+
+
+setPoints([]);
+
+setDistanceKm(0);
+
+setSpeed(0);
+
+
+
+startTime.current =
+Date.now();
+
+
+
+setTracking(true);
+
+
+
+
+watchRef.current =
+
+await watchPosition(
+
+(point)=>{
+
+
+setPoints(old=>{
+
+
+const updated = [
+...old,
+point
+];
+
+
+setDistanceKm(
+calculateDistanceKm(updated)
+);
+
+
+return updated;
+
+
+});
+
+
+setSpeed(
+
+Math.round(
+
+(point.speed || 0)
+*
+3.6
+
+)
+
+);
+
+
+
+webRef.current?.postMessage(
+
+JSON.stringify({
+
+type:"location",
+
+latitude:
+point.latitude,
+
+longitude:
+point.longitude,
+
+})
+
+);
+
+
+
+}
+
+);
+
+
+
+},[]);
+
+
+
+
+
+// ===============================
+// STOP DRIVE
+// ===============================
+
+
+const stopDrive =
+async()=>{
+
+
+watchRef.current?.remove();
+
+watchRef.current=null;
+
+
+setTracking(false);
+
+
+
+if(points.length < 2){
+
+Alert.alert(
+"Drive too short",
+"Drive longer before saving"
+);
+
+return;
+
+}
+
+
+
+
+const endedAt =
+Date.now();
+
+
+
+const duration =
+Math.round(
+
+(endedAt-startTime.current)
+/1000
+
+);
+
+
+
+
+const maxSpeed =
+calculateMaxSpeedKmh(points);
+
+
+
+const avgSpeed =
+calculateAvgSpeedKmh(
+
+distanceKm,
+
+duration
+
+);
+
+
+
+
+const user =
+auth.currentUser;
+
+
+
+if(!user)
+return;
+
+
+
+
+
+const place =
+await reverseGeocode(
+
+points[0].latitude,
+
+points[0].longitude
+
+);
+
+
+
+
+try{
+
+
+await saveTrip({
+
+userId:
+user.uid,
+
+userDisplayName:
+user.displayName || "Driver",
+
+startedAt:
+startTime.current,
+
+endedAt,
+
+distanceKm,
+
+durationSeconds:
+duration,
+
+avgSpeedKmh:
+avgSpeed,
+
+maxSpeedKmh:
+maxSpeed,
+
+route:
+points,
+
+city:
+place.city,
+
+state:
+place.state,
+
+country:
+place.country,
+
+});
+
+
+
+
+const result =
+await updateUserStats(
+
+user.uid,
+
+distanceKm,
+
+maxSpeed
+
+);
+
+
+
+Alert.alert(
+
+"Drive Saved",
+
+`${distanceKm.toFixed(2)} km\n+${result.xpGained} XP\nLevel ${result.newLevel}`
+
+);
+
+
+
+}
+
+catch(error:any){
+
+Alert.alert(
+
+"Error",
+
+error.message || "Could not save drive"
+
+);
+
+}
+
+
+
+setPoints([]);
+
+setDistanceKm(0);
+
+setSpeed(0);
+
+
+};
+
+
+
+
+
+// ===============================
+// REPORT ROAD EVENT
+// ===============================
+
+
+const reportRoad =
+(type:"traffic"|"police"|"crash")=>{
+
+
+if(!location)
+return;
+
+
+
+const newReport:RoadReport={
+
+
+id:
+Date.now().toString(),
+
+
+type,
+
+
+latitude:
+location.latitude,
+
+
+longitude:
+location.longitude,
+
+
+user:
+auth.currentUser?.displayName || "Driver",
+
+
+time:
+"now",
+
+
+};
+
+
+
+setFeed(old=>[
+
+newReport,
+
+...old,
+
+]);
+
+
+
+
+
+webRef.current?.postMessage(
+
+JSON.stringify({
+
+type:"report",
+
+report:newReport,
+
+})
+
+);
+
+
+
+Alert.alert(
+
+"Report sent",
+
+`Reported ${type}`
+
+);
+
+
+};
+
+
+
+
+
+// ===============================
+// MAP HTML
+// ===============================
+
+
+const html = `
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet"
+
+href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+
+<style>
+
+html,body,#map{
+
+height:100%;
+
+margin:0;
+
+}
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<div id="map"></div>
+
+
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+
+<script>
+
+
+const map =
+L.map('map')
+.setView([0,0],15);
+
+
+
+L.tileLayer(
+
+'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+
+{
+
+maxZoom:19
+
+}
+
+).addTo(map);
+
+
+
+
+
+let marker=null;
+
+
+
+let routeLine =
+L.polyline(
+
+[],
+
+{
+
+weight:5
+
+}
+
+).addTo(map);
+
+
+
+
+let reports=[];
+
+
+
+
+map.on(
+
+'click',
+
+function(e){
+
+
+window.ReactNativeWebView.postMessage(
+
+JSON.stringify({
+
+type:"mapPress",
+
+latitude:e.latlng.lat,
+
+longitude:e.latlng.lng
+
+})
+
+);
+
+
+}
+
+);
+
+
+
+
+
+document.addEventListener(
+
+"message",
+
+function(event){
+
+
+const data =
+JSON.parse(event.data);
+
+
+
+
+
+if(data.type==="location"){
+
+
+const pos=[
+
+data.latitude,
+
+data.longitude
+
+];
+
+
+
+map.setView(
+
+pos,
+
+16
+
+);
+
+
+
+if(marker)
+
+map.removeLayer(marker);
+
+
+
+marker =
+L.marker(pos)
+.addTo(map);
+
+
+
+}
+
+
+
+
+
+
+if(data.type==="route"){
+
+
+const coords =
+
+data.points.map(
+
+p=>[
+
+p.latitude,
+
+p.longitude
+
+]
+
+);
+
+
+
+routeLine.setLatLngs(coords);
+
+
+
+if(coords.length>1)
+
+map.fitBounds(
+
+routeLine.getBounds()
+
+);
+
+
+
+}
+
+
+
+
+
+
+if(data.type==="report"){
+
+
+
+let icon =
+"⚠️";
+
+
+
+if(data.report.type==="police")
+icon="🚓";
+
+if(data.report.type==="crash")
+icon="💥";
+
+
+
+L.marker(
+
+[
+
+data.report.latitude,
+
+data.report.longitude
+
+],
+
+{
+
+title:data.report.type
+
+}
+
+)
+
+.addTo(map)
+
+.bindPopup(icon+" "+data.report.type);
+
+
+
+}
+
+
+
+}
+
+
+
+);
+
+
+</script>
+
+
+</body>
+
+</html>
+
+`;
+id="58391"
+return (
+
+<View style={styles.container}>
+
+
+<WebView
+
+ref={webRef}
+
+originWhitelist={["*"]}
+
+source={{
+html
+}}
+
+javaScriptEnabled
+
+onMessage={(event)=>{
+
+
+const data =
+JSON.parse(event.nativeEvent.data);
+
+
+
+if(data.type==="mapPress"){
+
+
+Alert.alert(
+
+"Report road",
+
+"Choose what to report",
+
+[
+
+{
+
+text:"🚗 Traffic",
+
+onPress:()=>reportRoad("traffic"),
+
+},
+
+{
+
+text:"🚓 Police",
+
+onPress:()=>reportRoad("police"),
+
+},
+
+{
+
+text:"💥 Crash",
+
+onPress:()=>reportRoad("crash"),
+
+},
+
+{
+
+text:"Cancel",
+
+style:"cancel",
+
+},
+
+]
+
+);
+
+
+
+}
+
+
+}}
+
+style={styles.map}
+
+/>
+
+
+
+
+
+{/* SEARCH */}
+
+
+<View
+
+style={[
+
+styles.searchBox,
+
+{
+
+top:
+
+insets.top + 10
+
+}
+
+]}
+
+>
+
+
+<TextInput
+
+style={styles.input}
+
+placeholder="Search destination..."
+
+placeholderTextColor="#999"
+
+value={search}
+
+onChangeText={setSearch}
+
+/>
+
+
+
+<TouchableOpacity
+
+style={styles.searchButton}
+
+onPress={handleSearch}
+
+>
+
+<Text style={styles.searchText}>
+
+GO
+
+</Text>
+
+</TouchableOpacity>
+
+
+
+</View>
+
+
+
+
+
+
+
+{/* LIVE FEED */}
+
+
+<View
+
+style={[
+
+styles.feed,
+
+{
+
+top:
+
+insets.top + 75
+
+}
+
+]}
+
+>
+
+
+<Text style={styles.feedTitle}>
+
+🌍 Live Road Feed
+
+</Text>
+
+
+
+<FlatList
+
+data={feed}
+
+keyExtractor={(item)=>
+
+item.id
+
+}
+
+renderItem={({item})=>(
+
+
+<View style={styles.feedItem}>
+
+
+<Text style={styles.feedUser}>
+
+{item.user}
+
+</Text>
+
+
+<Text style={styles.feedMessage}>
+
+{
+
+item.type==="traffic"
+
+?
+
+"🚗 Traffic reported"
+
+:
+
+item.type==="police"
+
+?
+
+"🚓 Police reported"
+
+:
+
+"💥 Crash reported"
+
+}
+
+</Text>
+
+
+
+<Text style={styles.feedTime}>
+
+{item.time}
+
+</Text>
+
+
+</View>
+
+
+)}
+
+
+/>
+
+
+
+</View>
+
+
+
+
+
+
+
+
+{/* STATS */}
+
+
+<View
+
+style={[
+
+styles.stats,
+
+{
+
+top:
+
+insets.top + 260
+
+}
+
+]}
+
+>
+
+
+<Text style={styles.stat}>
+
+{distanceKm.toFixed(2)} km
+
+</Text>
+
+
+
+<Text style={styles.stat}>
+
+{speed} km/h
+
+</Text>
+
+
+</View>
+
+
+
+
+
+
+
+
+{/* REPORT BUTTONS */}
+
+
+<View
+
+style={[
+
+styles.reportButtons,
+
+{
+
+bottom:110
+
+}
+
+]}
+
+>
+
+
+<TouchableOpacity
+
+style={styles.reportButton}
+
+onPress={()=>
+
+reportRoad("traffic")
+
+}
+
+>
+
+<Text>
+
+🚗
+
+</Text>
+
+</TouchableOpacity>
+
+
+
+<TouchableOpacity
+
+style={styles.reportButton}
+
+onPress={()=>
+
+reportRoad("police")
+
+}
+
+>
+
+<Text>
+
+🚓
+
+</Text>
+
+</TouchableOpacity>
+
+
+
+<TouchableOpacity
+
+style={styles.reportButton}
+
+onPress={()=>
+
+reportRoad("crash")
+
+}
+
+>
+
+<Text>
+
+💥
+
+</Text>
+
+</TouchableOpacity>
+
+
+
+</View>
+
+
+
+
+
+
+
+
+{/* DRIVE BUTTON */}
+
+
+<TouchableOpacity
+
+style={[
+
+styles.driveButton,
+
+tracking && styles.stopButton
+
+]}
+
+onPress={
+
+tracking
+
+?
+
+stopDrive
+
+:
+
+startDrive
+
+}
+
+>
+
+
+<Text style={styles.driveText}>
+
+{
+
+tracking
+
+?
+
+"END DRIVE"
+
+:
+
+"START DRIVE"
+
+}
+
+</Text>
+
+
+</TouchableOpacity>
+
+
+
+</View>
+
+);
+
+}
+
+
+
+
+
+
+const styles =
+StyleSheet.create({
+
+
+container:{
+
+flex:1,
+
+backgroundColor:
+colors.background,
+
+},
+
+
+map:{
+
+flex:1,
+
+},
+
+
+searchBox:{
+
+position:"absolute",
+
+left:10,
+
+right:10,
+
+height:55,
+
+backgroundColor:"#111",
+
+borderRadius:15,
+
+flexDirection:"row",
+
+alignItems:"center",
+
+padding:8,
+
+},
+
+
+input:{
+
+flex:1,
+
+color:"#fff",
+
+fontSize:16,
+
+paddingHorizontal:10,
+
+},
+
+
+searchButton:{
+
+backgroundColor:colors.primary,
+
+paddingHorizontal:18,
+
+paddingVertical:10,
+
+borderRadius:10,
+
+},
+
+
+searchText:{
+
+color:"#000",
+
+fontWeight:"900",
+
+},
+
+
+
+
+feed:{
+
+position:"absolute",
+
+left:10,
+
+width:270,
+
+maxHeight:180,
+
+backgroundColor:"rgba(0,0,0,0.75)",
+
+borderRadius:15,
+
+padding:10,
+
+},
+
+
+feedTitle:{
+
+color:colors.primary,
+
+fontWeight:"900",
+
+},
+
+
+feedItem:{
+
+paddingVertical:6,
+
+borderBottomWidth:1,
+
+borderColor:"#333",
+
+},
+
+
+feedUser:{
+
+color:"#fff",
+
+fontWeight:"800",
+
+},
+
+
+feedMessage:{
+
+color:"#ddd",
+
+fontSize:12,
+
+},
+
+
+feedTime:{
+
+color:"#888",
+
+fontSize:11,
+
+},
+
+
+
+stats:{
+
+position:"absolute",
+
+right:15,
+
+alignItems:"flex-end",
+
+},
+
+
+stat:{
+
+color:colors.primary,
+
+fontSize:22,
+
+fontWeight:"900",
+
+},
+
+
+
+
+reportButtons:{
+
+position:"absolute",
+
+right:15,
+
+flexDirection:"row",
+
+gap:10,
+
+},
+
+
+reportButton:{
+
+backgroundColor:"#111",
+
+width:45,
+
+height:45,
+
+borderRadius:25,
+
+alignItems:"center",
+
+justifyContent:"center",
+
+},
+
+
+
+
+driveButton:{
+
+position:"absolute",
+
+bottom:50,
+
+alignSelf:"center",
+
+backgroundColor:colors.primary,
+
+paddingHorizontal:40,
+
+paddingVertical:18,
+
+borderRadius:20,
+
+},
+
+
+stopButton:{
+
+backgroundColor:colors.danger,
+
+},
+
+
+driveText:{
+
+color:"#000",
+
+fontWeight:"900",
+
+fontSize:16,
+
+},
+
+
 });
