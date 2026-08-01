@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   View,
@@ -10,12 +10,23 @@ import {
   Alert,
 } from "react-native";
 
+
 import { cars, Car } from "../data/cars";
+
 
 import {
   colors,
   spacing,
 } from "../constants/theme";
+
+
+import {
+  auth,
+  getUserProfile,
+  updateSelectedCar,
+} from "../services/firebase";
+
+
 
 
 export default function GarageScreen() {
@@ -26,18 +37,135 @@ export default function GarageScreen() {
 
 
 
-  const selectCar = (car: Car) => {
+  const [loading, setLoading] =
+    useState(true);
 
-    setSelectedCar(car);
 
-    Alert.alert(
-      "Car Selected",
-      `${car.brand} ${car.model}`
-    );
 
-    // Firebase saving will be added next
+
+  useEffect(() => {
+
+
+    const loadCar = async () => {
+
+
+      const user =
+        auth.currentUser;
+
+
+      if (!user) {
+
+        setLoading(false);
+
+        return;
+
+      }
+
+
+
+      const profile =
+        await getUserProfile(
+          user.uid
+        );
+
+
+
+      if (profile?.selectedCar) {
+
+        setSelectedCar(
+          profile.selectedCar
+        );
+
+      }
+
+
+
+      setLoading(false);
+
+
+    };
+
+
+
+    loadCar();
+
+
+
+  }, []);
+
+
+
+
+
+
+  const selectCar = async (car:Car) => {
+
+
+    const user =
+      auth.currentUser;
+
+
+
+    if (!user) {
+
+      Alert.alert(
+        "Error",
+        "You must login first"
+      );
+
+      return;
+
+    }
+
+
+
+    try {
+
+
+      await updateSelectedCar(
+
+        user.uid,
+
+        car
+
+      );
+
+
+
+      setSelectedCar(car);
+
+
+
+      Alert.alert(
+
+        "Car Selected",
+
+        `${car.brand} ${car.model}`
+
+      );
+
+
+
+    } catch(error){
+
+
+      Alert.alert(
+
+        "Error",
+
+        "Could not save car"
+
+      );
+
+
+    }
+
 
   };
+
+
+
+
 
 
 
@@ -52,21 +180,51 @@ export default function GarageScreen() {
 
 
 
+
+
       {selectedCar && (
 
+
         <View style={styles.selectedBox}>
+
 
           <Text style={styles.selectedTitle}>
             Current Car
           </Text>
 
+
+
+          {selectedCar.image && (
+
+            <Image
+
+              source={selectedCar.image}
+
+              style={styles.selectedImage}
+
+              resizeMode="contain"
+
+            />
+
+          )}
+
+
+
           <Text style={styles.selectedCar}>
+
             {selectedCar.brand} {selectedCar.model}
+
           </Text>
+
+
 
         </View>
 
+
       )}
+
+
+
 
 
 
@@ -74,21 +232,18 @@ export default function GarageScreen() {
 
         data={cars}
 
-        keyExtractor={(item) => item.id}
-
-        renderItem={({item}) => (
+        keyExtractor={(item)=>item.id}
 
 
-          <TouchableOpacity
+        renderItem={({item})=>(
 
-            style={styles.card}
 
-            onPress={() => selectCar(item)}
 
-          >
+          <View style={styles.card}>
 
 
             {item.image ? (
+
 
               <Image
 
@@ -100,17 +255,25 @@ export default function GarageScreen() {
 
               />
 
+
             ) : (
 
+
               <View style={styles.placeholder}>
+
 
                 <Text style={styles.placeholderText}>
                   🚗
                 </Text>
 
+
               </View>
 
+
             )}
+
+
+
 
 
 
@@ -119,9 +282,11 @@ export default function GarageScreen() {
             </Text>
 
 
+
             <Text style={styles.model}>
               {item.model}
             </Text>
+
 
 
             <Text style={styles.info}>
@@ -130,133 +295,171 @@ export default function GarageScreen() {
 
 
 
+
+
             <TouchableOpacity
 
               style={styles.button}
 
-              onPress={() => selectCar(item)}
+              onPress={()=>selectCar(item)}
 
             >
 
+
               <Text style={styles.buttonText}>
-                Select Car
+
+                {selectedCar?.id === item.id
+
+                ? "Selected"
+
+                : "Select Car"}
+
               </Text>
+
 
             </TouchableOpacity>
 
 
 
-          </TouchableOpacity>
+          </View>
 
 
         )}
 
+
       />
+
 
 
     </View>
 
   );
 
+
 }
+
+
+
 
 
 
 const styles = StyleSheet.create({
 
-  container:{
-    flex:1,
-    backgroundColor:colors.background,
-    padding:spacing.md,
-  },
+
+container:{
+ flex:1,
+ backgroundColor:colors.background,
+ padding:spacing.md,
+},
 
 
-  title:{
-    color:colors.primary,
-    fontSize:28,
-    fontWeight:"900",
-    marginBottom:spacing.md,
-  },
+title:{
+ color:colors.primary,
+ fontSize:28,
+ fontWeight:"900",
+ marginBottom:spacing.md,
+},
 
 
-  selectedBox:{
-    backgroundColor:colors.surface,
-    padding:spacing.md,
-    borderRadius:12,
-    marginBottom:spacing.md,
-  },
+
+selectedBox:{
+ backgroundColor:colors.surface,
+ padding:spacing.md,
+ borderRadius:16,
+ marginBottom:spacing.md,
+},
 
 
-  selectedTitle:{
-    color:colors.textSecondary,
-  },
+
+selectedTitle:{
+ color:colors.textSecondary,
+},
 
 
-  selectedCar:{
-    color:colors.primary,
-    fontSize:18,
-    fontWeight:"800",
-  },
+
+selectedImage:{
+ width:"100%",
+ height:120,
+},
 
 
-  card:{
-    backgroundColor:colors.surface,
-    borderRadius:16,
-    padding:spacing.md,
-    marginBottom:spacing.md,
-  },
+
+selectedCar:{
+ color:colors.primary,
+ fontSize:20,
+ fontWeight:"900",
+},
 
 
-  carImage:{
-    width:"100%",
-    height:160,
-  },
 
 
-  placeholder:{
-    height:160,
-    justifyContent:"center",
-    alignItems:"center",
-  },
+card:{
+ backgroundColor:colors.surface,
+ borderRadius:16,
+ padding:spacing.md,
+ marginBottom:spacing.md,
+},
 
 
-  placeholderText:{
-    fontSize:70,
-  },
+
+carImage:{
+ width:"100%",
+ height:160,
+},
 
 
-  brand:{
-    color:colors.primary,
-    fontSize:18,
-    fontWeight:"800",
-  },
+
+placeholder:{
+ height:160,
+ justifyContent:"center",
+ alignItems:"center",
+},
 
 
-  model:{
-    color:colors.text,
-    fontSize:22,
-    fontWeight:"900",
-  },
+
+placeholderText:{
+ fontSize:70,
+},
 
 
-  info:{
-    color:colors.textSecondary,
-    marginTop:5,
-  },
+
+brand:{
+ color:colors.primary,
+ fontSize:18,
+ fontWeight:"800",
+},
 
 
-  button:{
-    marginTop:spacing.md,
-    backgroundColor:colors.primary,
-    padding:12,
-    borderRadius:10,
-    alignItems:"center",
-  },
+
+model:{
+ color:colors.text,
+ fontSize:22,
+ fontWeight:"900",
+},
 
 
-  buttonText:{
-    color:"#000",
-    fontWeight:"900",
-  },
+
+info:{
+ color:colors.textSecondary,
+ marginTop:5,
+},
+
+
+
+button:{
+ marginTop:spacing.md,
+ backgroundColor:colors.primary,
+ padding:12,
+ borderRadius:10,
+ alignItems:"center",
+},
+
+
+
+buttonText:{
+ color:"#000",
+ fontWeight:"900",
+},
+
 
 });
