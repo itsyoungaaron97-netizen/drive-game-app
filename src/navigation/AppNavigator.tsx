@@ -16,13 +16,13 @@ import LeaderboardScreen from "../screens/LeaderboardScreen";
 import ChallengesScreen from "../screens/ChallengesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import FriendsScreen from "../screens/FriendsScreen";
+import GarageScreen from "../screens/GarageScreen";
 
 
 import { colors } from "../constants/theme";
 
 
 const Tab = createBottomTabNavigator();
-
 
 
 const navTheme = {
@@ -160,6 +160,28 @@ export default function AppNavigator() {
 
               <Text style={{ color, fontSize: 20 }}>
                 🏆
+              </Text>
+
+            ),
+
+          }}
+
+        />
+
+
+
+        <Tab.Screen
+
+          name="Garage"
+
+          component={GarageScreen}
+
+          options={{
+
+            tabBarIcon: ({ color }) => (
+
+              <Text style={{ color, fontSize: 20 }}>
+                🏎️
               </Text>
 
             ),
