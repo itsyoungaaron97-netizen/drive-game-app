@@ -1,6 +1,8 @@
 import { Car } from "../data/cars";
 
 
+// ---------- User Profile ----------
+
 export interface UserProfile {
 
   uid: string;
@@ -29,18 +31,23 @@ export interface UserProfile {
   lastActiveAt: number;
 
 
-  // Car system
+
+  // ---------- Car System ----------
 
   selectedCar?: Car;
 
+
   carsDriven?: {
+
     [carId: string]: number;
+
   };
 
 }
 
 
 
+// ---------- Trip ----------
 
 export interface TripPoint {
 
@@ -55,7 +62,6 @@ export interface TripPoint {
   altitude?: number;
 
 }
-
 
 
 
@@ -109,10 +115,18 @@ export interface Trip {
 
   xpEarned?: number;
 
+
+  // Car used during trip
+
+  carId?: string;
+
+  carName?: string;
+
 }
 
 
 
+// ---------- Leaderboard ----------
 
 export interface LeaderboardEntry {
 
@@ -140,11 +154,16 @@ export interface LeaderboardEntry {
 
 
 
+// ---------- Lobby ----------
 
 export type LobbyScope =
+
   | "city"
+
   | "state"
+
   | "country"
+
   | "global";
 
 
@@ -164,6 +183,7 @@ export interface Lobby {
 
 
 
+// ---------- Challenges ----------
 
 export interface Challenge {
 
@@ -175,9 +195,13 @@ export interface Challenge {
 
 
   type:
+
     | "distance"
+
     | "trips"
+
     | "speed"
+
     | "time";
 
 
@@ -208,9 +232,7 @@ export interface UserChallengeProgress {
 
 
 
-
 // ---------- Friends System ----------
-
 
 export interface FriendRequest {
 
@@ -228,8 +250,11 @@ export interface FriendRequest {
 
 
   status:
+
     | "pending"
+
     | "accepted"
+
     | "declined";
 
 
