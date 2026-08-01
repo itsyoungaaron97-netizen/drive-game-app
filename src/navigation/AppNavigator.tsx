@@ -2,11 +2,10 @@ import React from "react";
 import { Text } from "react-native";
 import { NavigationContainer, DarkTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-
 import MapScreen from "../screens/MapScreen";
 import LeaderboardScreen from "../screens/LeaderboardScreen";
+import ChallengesScreen from "../screens/ChallengesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-
 import { colors } from "../constants/theme";
 
 const Tab = createBottomTabNavigator();
@@ -48,7 +47,15 @@ export default function AppNavigator() {
             ),
           }}
         />
-
+        <Tab.Screen
+          name="Challenges"
+          component={ChallengesScreen}
+          options={{
+            tabBarIcon: ({ color }) => (
+              <Text style={{ color, fontSize: 20 }}>🎯</Text>
+            ),
+          }}
+        />
         <Tab.Screen
           name="Ranks"
           component={LeaderboardScreen}
@@ -58,7 +65,6 @@ export default function AppNavigator() {
             ),
           }}
         />
-
         <Tab.Screen
           name="Profile"
           component={ProfileScreen}
