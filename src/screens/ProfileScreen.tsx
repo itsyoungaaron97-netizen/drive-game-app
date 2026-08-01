@@ -372,5 +372,326 @@ export default function ProfileScreen() {
           :
 
           drivenCars.slice(0,5).map(
+            ([carId,count])=>(
 
+              <View
+                key={carId}
+                style={styles.carRow}
+              >
+
+                <Text style={styles.carName}>
+                  {carId}
+                </Text>
+
+                <Text style={styles.carCount}>
+                  {count} drives
+                </Text>
+
+              </View>
+
+            )
+
+          )
+
+        }
+
+
+
+
+        <Text style={styles.section}>
+          🌍 Places Visited
+        </Text>
+
+
+
+        {
+          places.length === 0 ?
+
+          (
+
+            <Text style={styles.empty}>
+              No places visited
+            </Text>
+
+          )
+
+          :
+
+          places.map((place,index)=>(
+
+            <Text
+              key={index}
+              style={styles.place}
+            >
+              📍 {place}
+            </Text>
+
+          ))
+
+        }
+
+
+
+
+
+        <Text style={styles.section}>
+          🛣️ Recent Drives
+        </Text>
+
+
+
+        {
+          trips.length === 0 ?
+
+          (
+
+            <Text style={styles.empty}>
+              No trips yet
+            </Text>
+
+          )
+
+          :
+
+          trips.map((trip)=>(
+
+            <View
+              key={trip.id}
+              style={styles.tripCard}
+            >
+
+              <Text style={styles.tripTitle}>
+                {trip.city || "Unknown"}
+              </Text>
+
+
+              <Text style={styles.tripText}>
+                {trip.distanceKm.toFixed(2)} km
+              </Text>
+
+
+              <Text style={styles.tripText}>
+                {format(
+                  new Date(trip.startedAt),
+                  "dd MMM yyyy HH:mm"
+                )}
+              </Text>
+
+
+            </View>
+
+          ))
+
+        }
+
+
+
+
+        <TouchableOpacity
+
+          style={styles.logout}
+
+          onPress={handleLogout}
+
+        >
+
+          <Text style={styles.logoutText}>
+            LOG OUT
+          </Text>
+
+
+        </TouchableOpacity>
+
+
+
+      </View>
+
+
+    </ScrollView>
+
+  );
+
+}
+
+
+
+
+
+
+const styles = StyleSheet.create({
+
+container:{
+  flex:1,
+  backgroundColor:colors.background,
+},
+
+
+center:{
+  justifyContent:"center",
+  alignItems:"center",
+},
+
+
+title:{
+  color:"#fff",
+  fontSize:30,
+  fontWeight:"900",
+  marginBottom:20,
+},
+
+
+card:{
+  backgroundColor:"#111",
+  borderRadius:20,
+  padding:20,
+},
+
+
+avatar:{
+  width:90,
+  height:90,
+  borderRadius:45,
+  alignSelf:"center",
+},
+
+
+avatarPlaceholder:{
+  width:90,
+  height:90,
+  borderRadius:45,
+  backgroundColor:"#333",
+  justifyContent:"center",
+  alignItems:"center",
+  alignSelf:"center",
+},
+
+
+avatarText:{
+  fontSize:40,
+},
+
+
+name:{
+  color:"#fff",
+  fontSize:22,
+  fontWeight:"900",
+  textAlign:"center",
+  marginTop:10,
+},
+
+
+email:{
+  color:"#aaa",
+  textAlign:"center",
+},
+
+
+xpBox:{
+  marginTop:20,
+  backgroundColor:"#222",
+  padding:15,
+  borderRadius:15,
+},
+
+
+level:{
+  color:colors.primary,
+  fontSize:20,
+  fontWeight:"900",
+},
+
+
+xp:{
+  color:"#fff",
+},
+
+
+section:{
+  color:colors.primary,
+  fontSize:18,
+  fontWeight:"900",
+  marginTop:25,
+  marginBottom:10,
+},
+
+
+carImage:{
+  width:"100%",
+  height:160,
+  borderRadius:15,
+},
+
+
+car:{
+  color:"#fff",
+  fontSize:18,
+  fontWeight:"800",
+},
+
+
+empty:{
+  color:"#888",
+},
+
+
+carRow:{
+  flexDirection:"row",
+  justifyContent:"space-between",
+  paddingVertical:8,
+  borderBottomWidth:1,
+  borderColor:"#333",
+},
+
+
+carName:{
+  color:"#fff",
+},
+
+
+carCount:{
+  color:colors.primary,
+},
+
+
+place:{
+  color:"#ddd",
+  marginVertical:5,
+},
+
+
+tripCard:{
+  backgroundColor:"#222",
+  padding:12,
+  borderRadius:12,
+  marginBottom:8,
+},
+
+
+tripTitle:{
+  color:"#fff",
+  fontWeight:"900",
+},
+
+
+tripText:{
+  color:"#aaa",
+},
+
+
+logout:{
+  marginTop:30,
+  backgroundColor:colors.danger,
+  padding:16,
+  borderRadius:15,
+  alignItems:"center",
+},
+
+
+logoutText:{
+  color:"#000",
+  fontWeight:"900",
+},
+
+
+});
            
