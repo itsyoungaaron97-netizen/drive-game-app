@@ -12,18 +12,21 @@ import {
 
 
 import MapScreen from "../screens/MapScreen";
-import MapLibreTest from "../screens/MapLibreTest";
-import LeaderboardScreen from "../screens/LeaderboardScreen";
-import ChallengesScreen from "../screens/ChallengesScreen";
-import ProfileScreen from "../screens/ProfileScreen";
-import FriendsScreen from "../screens/FriendsScreen";
 import GarageScreen from "../screens/GarageScreen";
+import CommunityScreen from "../screens/CommunityScreen";
+import LeaderboardScreen from "../screens/LeaderboardScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 
 
-import { colors } from "../constants/theme";
+import {
+  colors,
+} from "../constants/theme";
 
 
-const Tab = createBottomTabNavigator();
+
+const Tab =
+  createBottomTabNavigator();
+
 
 
 const navTheme = {
@@ -34,15 +37,20 @@ const navTheme = {
 
     ...DarkTheme.colors,
 
-    background: colors.background,
+    background:
+      colors.background,
 
-    card: colors.surface,
+    card:
+      colors.surface,
 
-    primary: colors.primary,
+    primary:
+      colors.primary,
 
-    text: colors.text,
+    text:
+      colors.text,
 
-    border: colors.border,
+    border:
+      colors.border,
 
   },
 
@@ -50,190 +58,198 @@ const navTheme = {
 
 
 
-export default function AppNavigator() {
 
-  return (
 
-    <NavigationContainer theme={navTheme}>
+export default function AppNavigator(){
 
-      <Tab.Navigator
 
-        screenOptions={{
+return (
 
-          headerShown:false,
+<NavigationContainer theme={navTheme}>
 
-          tabBarStyle:{
 
-            backgroundColor:colors.surface,
+<Tab.Navigator
 
-            borderTopColor:colors.border,
 
-            height:60,
+screenOptions={{
 
-            paddingBottom:8,
+headerShown:false,
 
-          },
 
-          tabBarActiveTintColor:colors.primary,
+tabBarStyle:{
 
-          tabBarInactiveTintColor:colors.textSecondary,
+backgroundColor:
+colors.surface,
 
-        }}
+borderTopColor:
+colors.border,
 
-      >
+height:60,
 
+paddingBottom:8,
 
-        <Tab.Screen
+},
 
-          name="Drive"
 
-          component={MapScreen}
+tabBarActiveTintColor:
+colors.primary,
 
-          options={{
 
-            tabBarIcon:({color})=>(
+tabBarInactiveTintColor:
+colors.textSecondary,
 
-              <Text style={{color,fontSize:20}}>
-                🚗
-              </Text>
 
-            ),
+}}
 
-          }}
 
-        />
+>
 
 
-        <Tab.Screen
 
-          name="3D Map Test"
+<Tab.Screen
 
-          component={MapLibreTest}
+name="Drive"
 
-          options={{
+component={MapScreen}
 
-            tabBarIcon:({color})=>(
+options={{
 
-              <Text style={{color,fontSize:20}}>
-                🌍
-              </Text>
+tabBarIcon:({color})=>(
 
-            ),
+<Text style={{
+color,
+fontSize:20
+}}>
+🚗
+</Text>
 
-          }}
+),
 
-        />
+}}
 
+/>
 
-        <Tab.Screen
 
-          name="Friends"
 
-          component={FriendsScreen}
 
-          options={{
 
-            tabBarIcon:({color})=>(
+<Tab.Screen
 
-              <Text style={{color,fontSize:20}}>
-                👥
-              </Text>
+name="Garage"
 
-            ),
+component={GarageScreen}
 
-          }}
+options={{
 
-        />
+tabBarIcon:({color})=>(
 
+<Text style={{
+color,
+fontSize:20
+}}>
+🏎️
+</Text>
 
-        <Tab.Screen
+),
 
-          name="Challenges"
+}}
 
-          component={ChallengesScreen}
+/>
 
-          options={{
 
-            tabBarIcon:({color})=>(
 
-              <Text style={{color,fontSize:20}}>
-                🎯
-              </Text>
 
-            ),
 
-          }}
 
-        />
+<Tab.Screen
 
+name="Community"
 
-        <Tab.Screen
+component={CommunityScreen}
 
-          name="Ranks"
+options={{
 
-          component={LeaderboardScreen}
+tabBarIcon:({color})=>(
 
-          options={{
+<Text style={{
+color,
+fontSize:20
+}}>
+💬
+</Text>
 
-            tabBarIcon:({color})=>(
+),
 
-              <Text style={{color,fontSize:20}}>
-                🏆
-              </Text>
+}}
 
-            ),
+/>
 
-          }}
 
-        />
 
 
-        <Tab.Screen
 
-          name="Garage"
 
-          component={GarageScreen}
+<Tab.Screen
 
-          options={{
+name="Ranks"
 
-            tabBarIcon:({color})=>(
+component={LeaderboardScreen}
 
-              <Text style={{color,fontSize:20}}>
-                🏎️
-              </Text>
+options={{
 
-            ),
+tabBarIcon:({color})=>(
 
-          }}
+<Text style={{
+color,
+fontSize:20
+}}>
+🏆
+</Text>
 
-        />
+),
 
+}}
 
-        <Tab.Screen
+/>
 
-          name="Profile"
 
-          component={ProfileScreen}
 
-          options={{
 
-            tabBarIcon:({color})=>(
 
-              <Text style={{color,fontSize:20}}>
-                👤
-              </Text>
 
-            ),
 
-          }}
+<Tab.Screen
 
-        />
+name="Profile"
 
+component={ProfileScreen}
 
-      </Tab.Navigator>
+options={{
 
-    </NavigationContainer>
+tabBarIcon:({color})=>(
 
-  );
+<Text style={{
+color,
+fontSize:20
+}}>
+👤
+</Text>
+
+),
+
+}}
+
+/>
+
+
+
+</Tab.Navigator>
+
+
+</NavigationContainer>
+
+
+);
+
 
 }
