@@ -3,10 +3,15 @@ import { StatusBar } from "expo-status-bar";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { User } from "firebase/auth";
+
+import MapLibreGL from "@maplibre/maplibre-react-native";
+
 import { subscribeToAuth } from "./src/services/firebase";
 import AuthScreen from "./src/screens/AuthScreen";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { colors } from "./src/constants/theme";
+
+MapLibreGL.setAccessToken(null);
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
