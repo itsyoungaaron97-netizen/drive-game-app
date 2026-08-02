@@ -1116,26 +1116,27 @@ location.latitude
 />
 
 
+
 <MapLibreGL.FillExtrusionLayer
   id="3d-buildings"
+  sourceID="openmaptiles"
   sourceLayerID="building"
   minZoomLevel={14}
   style={{
-    fillExtrusionColor: "#888888",
-    fillExtrusionHeight: [
+    fillExtrusionColor:"#888888",
+    fillExtrusionHeight:[
       "coalesce",
-      ["get", "render_height"],
+      ["get","render_height"],
       10
     ],
-    fillExtrusionBase: [
+    fillExtrusionBase:[
       "coalesce",
-      ["get", "render_min_height"],
+      ["get","render_min_height"],
       0
     ],
-    fillExtrusionOpacity: 0.8,
+    fillExtrusionOpacity:0.8,
   }}
 />
-
 
 
 
