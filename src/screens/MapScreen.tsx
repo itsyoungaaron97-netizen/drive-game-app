@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { WebView } from "react-native-webview";
+import MapLibreGL from "@maplibre/maplibre-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
