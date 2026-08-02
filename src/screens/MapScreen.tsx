@@ -12,7 +12,6 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  FlatList,
   ActivityIndicator,
   Linking,
   Animated,
@@ -43,15 +42,11 @@ import { colors } from "../constants/theme";
 
 
 // =====================================
-// MAPLIBRE CONFIG
+// MAP CONFIG
 // =====================================
 
-MapLibreGL.setAccessToken(null);
-
-
-// Free OpenStreetMap style
 const MAP_STYLE =
-"https://demotiles.maplibre.org/style.json";
+  "https://demotiles.maplibre.org/style.json";
 
 
 // =====================================
@@ -211,7 +206,13 @@ async function getRoute(
 
   }
 
-}export default function MapScreen(){
+}
+
+
+
+
+
+export default function MapScreen(){
 
 const insets =
 useSafeAreaInsets();
@@ -244,6 +245,11 @@ useRef(0);
 const latestLocation =
 useRef<LocationPoint|null>(null);
 
+
+
+// =====================================
+// STATE
+// =====================================
 
 
 const [
@@ -309,13 +315,14 @@ setSelectedReportLocation
 
 
 
-// MUSIC UI
+// =====================================
+// MUSIC PANEL
+// =====================================
 
 const [
 musicOpen,
 setMusicOpen
 ]=useState(false);
-
 
 
 const musicAnimation =
@@ -351,7 +358,7 @@ setMusicOpen(!musicOpen);
 
 
 // =====================================
-// OPEN MUSIC APPS
+// MUSIC APPS
 // =====================================
 
 const openSpotify =
@@ -390,7 +397,6 @@ Linking.openURL(
 
 
 
-
 // =====================================
 // LOAD LOCATION
 // =====================================
@@ -406,7 +412,6 @@ try{
 
 const permission =
 await requestLocationPermissions();
-
 
 
 if(!permission){
@@ -464,7 +469,6 @@ animationDuration:1000,
 
 });
 
-
 }
 
 
@@ -482,9 +486,7 @@ setLoading(false);
 
 }
 
-
 };
-
 
 
 load();
@@ -505,10 +507,6 @@ watchRef.current=null;
 
 
 },[]);
-
-
-
-
 // =====================================
 // SEARCH DESTINATION
 // =====================================
@@ -693,75 +691,15 @@ animationDuration:500,
 
 
 
+
+
 // =====================================
-// CREATE REPORT
-// =====================================
-
-const createReport =
-(
-type:
-"traffic"
-|
-"police"
-|
-"crash"
-)=>{
-
-
-const target =
-selectedReportLocation ||
-location;
-
-
-if(!target)
-return;
-
-
-
-const report:RoadReport={
-
-id:
-Date.now().toString(),
-
-type,
-
-latitude:
-target.latitude,
-
-longitude:
-target.longitude,
-
-user:
-auth.currentUser?.displayName ||
-"Driver",
-
-time:
-"now",
-
-};
-
-
-
-setReports(
-
-old=>[
-report,
-...old
-]
-
-);
-
-
-
-setSelectedReportLocation(null);
-
-
-};// =====================================
 // STOP DRIVE
 // =====================================
 
 const stopDrive =
 async()=>{
+
 
 if(watchRef.current){
 
@@ -772,11 +710,14 @@ watchRef.current=null;
 }
 
 
+
 setTracking(false);
+
 
 
 const savedPoints =
 latestPoints.current;
+
 
 
 if(savedPoints.length < 2){
@@ -791,33 +732,45 @@ return;
 }
 
 
+
 const endedAt =
 Date.now();
 
 
+
 const duration =
 Math.round(
+
 (endedAt - startTime.current)
 /1000
+
 );
+
 
 
 const maxSpeed =
 calculateMaxSpeedKmh(
+
 savedPoints
+
 );
+
 
 
 const avgSpeed =
 calculateAvgSpeedKmh(
+
 latestDistance.current,
+
 duration
+
 );
 
 
 
 const user =
 auth.currentUser;
+
 
 
 if(!user)
@@ -828,21 +781,29 @@ return;
 let place:any={};
 
 
+
 try{
 
 place =
 await reverseGeocode(
+
 savedPoints[0].latitude,
+
 savedPoints[0].longitude
+
 )
 ||{};
 
 
 }catch(error){
 
-console.log(error);
+console.log(
+"Reverse error",
+error
+);
 
 }
+
 
 
 
@@ -891,9 +852,13 @@ place.country || "",
 
 const result =
 await updateUserStats(
+
 user.uid,
+
 latestDistance.current,
+
 maxSpeed
+
 );
 
 
@@ -910,14 +875,17 @@ Alert.alert(
 
 }catch(error:any){
 
-
 Alert.alert(
+
 "Save failed",
-error.message
+
+error.message ||
+"Unknown error"
+
 );
 
-
 }
+
 
 
 latestPoints.current=[];
@@ -934,8 +902,90 @@ setSpeed(0);
 
 
 
+
 // =====================================
-// MAP CLICK REPORT
+// ROAD REPORTS
+// =====================================
+
+const createReport =
+(
+type:
+"traffic"
+|
+"police"
+|
+"crash"
+
+)=>{
+
+
+const target =
+selectedReportLocation ||
+location;
+
+
+
+if(!target)
+return;
+
+
+
+const report:RoadReport={
+
+
+id:
+Date.now().toString(),
+
+
+type,
+
+
+latitude:
+target.latitude,
+
+
+longitude:
+target.longitude,
+
+
+user:
+auth.currentUser?.displayName ||
+"Driver",
+
+
+time:
+"now",
+
+
+};
+
+
+
+setReports(
+
+old=>[
+
+report,
+
+...old
+
+]
+
+);
+
+
+
+setSelectedReportLocation(null);
+
+
+};
+
+
+
+
+
+// =====================================
+// MAP PRESS
 // =====================================
 
 const handleMapPress =
@@ -946,35 +996,39 @@ const coords =
 event.geometry.coordinates;
 
 
+
 setSelectedReportLocation({
 
-longitude:coords[0],
+longitude:
+coords[0],
 
-latitude:coords[1],
+latitude:
+coords[1],
 
 });
 
 
+
 Alert.alert(
 
-"Report",
+"Road Report",
 
-"Add road report here?",
+"Choose report",
 
 [
 
 {
-text:"Traffic",
+text:"🚗 Traffic",
 onPress:()=>createReport("traffic")
 },
 
 {
-text:"Police",
+text:"🚓 Police",
 onPress:()=>createReport("police")
 },
 
 {
-text:"Crash",
+text:"💥 Crash",
 onPress:()=>createReport("crash")
 },
 
@@ -994,7 +1048,7 @@ style:"cancel"
 
 
 // =====================================
-// RENDER
+// LOADING SCREEN
 // =====================================
 
 if(loading){
@@ -1004,19 +1058,28 @@ return(
 <View style={styles.loading}>
 
 <ActivityIndicator
+
 size="large"
+
 color={colors.primary}
+
 />
 
+
 <Text style={styles.loadingText}>
+
 Loading map...
+
 </Text>
+
 
 </View>
 
 );
 
 }
+
+
 
 
 
@@ -1047,12 +1110,19 @@ zoomLevel={15}
 centerCoordinate={
 
 location
+
 ?
+
 [
+
 location.longitude,
+
 location.latitude
+
 ]
+
 :
+
 [14.3,41.0]
 
 }
@@ -1082,7 +1152,9 @@ location.latitude
 <View style={styles.carMarker}>
 
 <Text>
+
 🚗
+
 </Text>
 
 </View>
@@ -1091,7 +1163,6 @@ location.latitude
 </MapLibreGL.PointAnnotation>
 
 }
-
 
 
 
@@ -1113,19 +1184,24 @@ type:"LineString",
 
 coordinates:
 
-route.map(p=>[
+route.map(
+
+p=>[
 
 p.longitude,
 
 p.latitude
 
-])
+]
+
+)
 
 }
 
 }}
 
 >
+
 
 <MapLibreGL.LineLayer
 
@@ -1141,6 +1217,7 @@ lineWidth:5
 
 />
 
+
 </MapLibreGL.ShapeSource>
 
 }
@@ -1150,7 +1227,6 @@ lineWidth:5
 {
 
 reports.map(report=>(
-
 
 <MapLibreGL.PointAnnotation
 
@@ -1168,18 +1244,27 @@ report.latitude
 
 >
 
+
 <Text style={styles.reportIcon}>
 
 {
 
 report.type==="traffic"
+
 ?
+
 "🚗"
+
 :
+
 report.type==="police"
+
 ?
+
 "🚓"
+
 :
+
 "💥"
 
 }
@@ -1189,26 +1274,39 @@ report.type==="police"
 
 </MapLibreGL.PointAnnotation>
 
-
 ))
 
 }
-
-
 </MapLibreGL.MapView>
 
 
 
 
 
-{/* MUSIC */}
+{/* MUSIC PANEL */}
 
-<View style={styles.musicContainer}>
+<View
+
+style={[
+
+styles.musicContainer,
+
+{
+
+top: insets.top + 20
+
+}
+
+]}
+
+>
 
 
 <TouchableOpacity
 
 onPress={toggleMusic}
+
+style={styles.musicHeader}
 
 >
 
@@ -1219,7 +1317,15 @@ onPress={toggleMusic}
 </Text>
 
 
+<Text style={styles.musicArrow}>
+
+{musicOpen ? "▲" : "▼"}
+
+</Text>
+
+
 </TouchableOpacity>
+
 
 
 
@@ -1227,7 +1333,39 @@ onPress={toggleMusic}
 
 musicOpen &&
 
-<View style={styles.musicBox}>
+<Animated.View
+
+style={[
+
+styles.musicBox,
+
+{
+
+transform:[
+
+{
+
+translateX:
+
+musicAnimation.interpolate({
+
+inputRange:[0,1],
+
+outputRange:[250,0]
+
+})
+
+}
+
+]
+
+}
+
+]
+
+}
+
+>
 
 
 <TouchableOpacity
@@ -1238,11 +1376,14 @@ onPress={openSpotify}
 
 >
 
-<Text>
+<Text style={styles.musicText}>
+
 Spotify
+
 </Text>
 
 </TouchableOpacity>
+
 
 
 
@@ -1254,15 +1395,17 @@ onPress={openAppleMusic}
 
 >
 
-<Text>
+<Text style={styles.musicText}>
+
 Apple Music
+
 </Text>
 
 </TouchableOpacity>
 
 
 
-</View>
+</Animated.View>
 
 }
 
@@ -1272,6 +1415,70 @@ Apple Music
 
 
 
+
+
+{/* SEARCH */}
+
+
+<View
+
+style={[
+
+styles.searchBox,
+
+{
+
+top:insets.top + 80
+
+}
+
+]}
+
+>
+
+
+<TextInput
+
+value={search}
+
+onChangeText={setSearch}
+
+placeholder="Search destination"
+
+placeholderTextColor="#999"
+
+style={styles.input}
+
+/>
+
+
+<TouchableOpacity
+
+style={styles.searchButton}
+
+onPress={handleSearch}
+
+>
+
+
+<Text style={styles.buttonText}>
+
+GO
+
+</Text>
+
+
+</TouchableOpacity>
+
+
+</View>
+
+
+
+
+
+
+{/* STATS */}
 
 
 <View style={styles.stats}>
@@ -1298,6 +1505,9 @@ Apple Music
 
 
 
+{/* REPORT BUTTON */}
+
+
 <TouchableOpacity
 
 style={styles.reportButton}
@@ -1307,13 +1517,20 @@ onPress={()=>createReport("traffic")}
 >
 
 <Text>
+
 ⚠️ REPORT
+
 </Text>
+
 
 </TouchableOpacity>
 
 
 
+
+
+
+{/* DRIVE BUTTON */}
 
 
 <TouchableOpacity
@@ -1329,23 +1546,31 @@ tracking && styles.stopButton
 onPress={
 
 tracking
+
 ?
+
 stopDrive
+
 :
+
 startDrive
 
 }
 
 >
 
-<Text>
+<Text style={styles.buttonText}>
 
 {
 
 tracking
+
 ?
+
 "END DRIVE"
+
 :
+
 "START DRIVE"
 
 }
@@ -1357,8 +1582,300 @@ tracking
 
 
 
+
 </View>
 
 );
 
 }
+
+
+
+
+
+
+// =====================================
+// STYLES
+// =====================================
+
+const styles = StyleSheet.create({
+
+container:{
+
+flex:1,
+
+backgroundColor:"#000",
+
+},
+
+
+map:{
+
+flex:1,
+
+},
+
+
+loading:{
+
+flex:1,
+
+backgroundColor:"#000",
+
+justifyContent:"center",
+
+alignItems:"center",
+
+},
+
+
+loadingText:{
+
+color:"#fff",
+
+marginTop:10,
+
+},
+
+
+
+carMarker:{
+
+backgroundColor:"#111",
+
+borderRadius:30,
+
+padding:8,
+
+},
+
+
+
+reportIcon:{
+
+fontSize:30,
+
+},
+
+
+
+musicContainer:{
+
+position:"absolute",
+
+right:10,
+
+},
+
+
+
+musicHeader:{
+
+backgroundColor:"#111",
+
+paddingHorizontal:18,
+
+paddingVertical:12,
+
+borderRadius:20,
+
+flexDirection:"row",
+
+alignItems:"center",
+
+},
+
+
+
+musicTitle:{
+
+color:"#00ff99",
+
+fontWeight:"900",
+
+fontSize:16,
+
+},
+
+
+
+musicArrow:{
+
+color:"#fff",
+
+marginLeft:10,
+
+},
+
+
+
+musicBox:{
+
+backgroundColor:"rgba(0,0,0,0.85)",
+
+marginTop:10,
+
+padding:10,
+
+borderRadius:15,
+
+width:180,
+
+},
+
+
+
+musicButton:{
+
+backgroundColor:"#00ff99",
+
+padding:12,
+
+borderRadius:12,
+
+marginVertical:5,
+
+alignItems:"center",
+
+},
+
+
+
+musicText:{
+
+fontWeight:"900",
+
+color:"#000",
+
+},
+
+
+
+searchBox:{
+
+position:"absolute",
+
+left:10,
+
+right:10,
+
+height:55,
+
+backgroundColor:"#111",
+
+borderRadius:15,
+
+flexDirection:"row",
+
+alignItems:"center",
+
+padding:8,
+
+},
+
+
+
+input:{
+
+flex:1,
+
+color:"#fff",
+
+paddingHorizontal:10,
+
+},
+
+
+
+searchButton:{
+
+backgroundColor:colors.primary,
+
+padding:12,
+
+borderRadius:10,
+
+},
+
+
+
+buttonText:{
+
+fontWeight:"900",
+
+color:"#000",
+
+},
+
+
+
+stats:{
+
+position:"absolute",
+
+right:15,
+
+top:170,
+
+},
+
+
+
+stat:{
+
+color:colors.primary,
+
+fontSize:22,
+
+fontWeight:"900",
+
+},
+
+
+
+reportButton:{
+
+position:"absolute",
+
+right:15,
+
+bottom:130,
+
+backgroundColor:"#ffcc00",
+
+padding:15,
+
+borderRadius:15,
+
+},
+
+
+
+driveButton:{
+
+position:"absolute",
+
+bottom:40,
+
+alignSelf:"center",
+
+backgroundColor:colors.primary,
+
+paddingVertical:18,
+
+paddingHorizontal:40,
+
+borderRadius:20,
+
+},
+
+
+
+stopButton:{
+
+backgroundColor:colors.danger,
+
+},
+
+
+});
