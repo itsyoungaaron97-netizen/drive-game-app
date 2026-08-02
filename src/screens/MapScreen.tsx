@@ -42,11 +42,13 @@ import { colors } from "../constants/theme";
 
 
 // =====================================
-// MAP CONFIG
+// MAPLIBRE 3D CONFIG
 // =====================================
 
+MapLibreGL.setAccessToken(null);
+
 const MAP_STYLE =
-  "https://demotiles.maplibre.org/style.json";
+"https://demotiles.maplibre.org/style.json";
 
 
 // =====================================
@@ -77,7 +79,6 @@ type RoadReport = {
   time:string;
 
 };
-
 
 
 // =====================================
@@ -246,7 +247,6 @@ const latestLocation =
 useRef<LocationPoint|null>(null);
 
 
-
 // =====================================
 // STATE
 // =====================================
@@ -258,12 +258,10 @@ setLoading
 ]=useState(true);
 
 
-
 const [
 location,
 setLocation
 ]=useState<LocationPoint|null>(null);
-
 
 
 const [
@@ -272,12 +270,10 @@ setSearch
 ]=useState("");
 
 
-
 const [
 distanceKm,
 setDistanceKm
 ]=useState(0);
-
 
 
 const [
@@ -286,19 +282,16 @@ setSpeed
 ]=useState(0);
 
 
-
 const [
 tracking,
 setTracking
 ]=useState(false);
 
 
-
 const [
 route,
 setRoute
-]=useState<LocationPoint[]>([]);
-
+]=useState<LocationPoint[]>();
 
 
 const [
@@ -307,16 +300,14 @@ setReports
 ]=useState<RoadReport[]>([]);
 
 
-
 const [
 selectedReportLocation,
 setSelectedReportLocation
 ]=useState<LocationPoint|null>(null);
 
 
-
 // =====================================
-// MUSIC PANEL
+// MUSIC DRAWER
 // =====================================
 
 const [
@@ -325,11 +316,22 @@ setMusicOpen
 ]=useState(false);
 
 
+const [
+playing,
+setPlaying
+]=useState(false);
+
+
+const [
+track,
+setTrack
+]=useState(0);
+
+
 const musicAnimation =
 useRef(
 new Animated.Value(0)
 ).current;
-
 
 
 const toggleMusic =
@@ -340,7 +342,6 @@ Animated.spring(
 musicAnimation,
 
 {
-
 toValue:
 musicOpen ? 0 : 1,
 
@@ -354,11 +355,8 @@ useNativeDriver:true,
 setMusicOpen(!musicOpen);
 
 };
-
-
-
 // =====================================
-// MUSIC APPS
+// MUSIC CONTROLS
 // =====================================
 
 const openSpotify =
@@ -378,7 +376,6 @@ Linking.openURL(
 };
 
 
-
 const openAppleMusic =
 ()=>{
 
@@ -396,6 +393,35 @@ Linking.openURL(
 };
 
 
+const togglePlay =
+()=>{
+
+setPlaying(!playing);
+
+};
+
+
+const nextTrack =
+()=>{
+
+setTrack(
+old=>old+1
+);
+
+};
+
+
+const previousTrack =
+()=>{
+
+setTrack(
+old=>Math.max(0,old-1)
+);
+
+};
+
+
+
 
 // =====================================
 // LOAD LOCATION
@@ -403,12 +429,10 @@ Linking.openURL(
 
 useEffect(()=>{
 
-
 const load =
 async()=>{
 
 try{
-
 
 const permission =
 await requestLocationPermissions();
@@ -445,6 +469,7 @@ position.coords.longitude,
 };
 
 
+
 latestLocation.current =
 current;
 
@@ -465,9 +490,14 @@ current.latitude
 
 zoomLevel:16,
 
+pitch:45,
+
+heading:0,
+
 animationDuration:1000,
 
 });
+
 
 }
 
@@ -486,11 +516,11 @@ setLoading(false);
 
 }
 
+
 };
 
 
 load();
-
 
 
 return()=>{
@@ -507,8 +537,12 @@ watchRef.current=null;
 
 
 },[]);
+
+
+
+
 // =====================================
-// SEARCH DESTINATION
+// SEARCH
 // =====================================
 
 const handleSearch =
@@ -517,6 +551,7 @@ async()=>{
 
 if(!search.trim())
 return;
+
 
 
 const result =
@@ -677,6 +712,8 @@ point.latitude
 
 ],
 
+pitch:45,
+
 animationDuration:500,
 
 });
@@ -688,7 +725,6 @@ animationDuration:500,
 
 
 },[]);
-
 
 
 
@@ -741,7 +777,7 @@ Date.now();
 const duration =
 Math.round(
 
-(endedAt - startTime.current)
+(endedAt-startTime.current)
 /1000
 
 );
@@ -750,20 +786,15 @@ Math.round(
 
 const maxSpeed =
 calculateMaxSpeedKmh(
-
 savedPoints
-
 );
 
 
 
 const avgSpeed =
 calculateAvgSpeedKmh(
-
 latestDistance.current,
-
 duration
-
 );
 
 
@@ -797,13 +828,9 @@ savedPoints[0].longitude
 
 }catch(error){
 
-console.log(
-"Reverse error",
-error
-);
+console.log(error);
 
 }
-
 
 
 
@@ -876,12 +903,8 @@ Alert.alert(
 }catch(error:any){
 
 Alert.alert(
-
 "Save failed",
-
-error.message ||
-"Unknown error"
-
+error.message || "Unknown error"
 );
 
 }
@@ -898,13 +921,8 @@ setSpeed(0);
 
 
 };
-
-
-
-
-
 // =====================================
-// ROAD REPORTS
+// REPORTS
 // =====================================
 
 const createReport =
@@ -915,14 +933,12 @@ type:
 "police"
 |
 "crash"
-
 )=>{
 
 
 const target =
 selectedReportLocation ||
 location;
-
 
 
 if(!target)
@@ -932,30 +948,23 @@ return;
 
 const report:RoadReport={
 
-
 id:
 Date.now().toString(),
 
-
 type,
-
 
 latitude:
 target.latitude,
 
-
 longitude:
 target.longitude,
-
 
 user:
 auth.currentUser?.displayName ||
 "Driver",
 
-
 time:
 "now",
-
 
 };
 
@@ -964,11 +973,8 @@ time:
 setReports(
 
 old=>[
-
 report,
-
 ...old
-
 ]
 
 );
@@ -977,16 +983,11 @@ report,
 
 setSelectedReportLocation(null);
 
-
 };
 
 
 
 
-
-// =====================================
-// MAP PRESS
-// =====================================
 
 const handleMapPress =
 (event:any)=>{
@@ -999,21 +1000,18 @@ event.geometry.coordinates;
 
 setSelectedReportLocation({
 
-longitude:
-coords[0],
+longitude:coords[0],
 
-latitude:
-coords[1],
+latitude:coords[1],
 
 });
-
 
 
 Alert.alert(
 
 "Road Report",
 
-"Choose report",
+"Choose event",
 
 [
 
@@ -1048,7 +1046,7 @@ style:"cancel"
 
 
 // =====================================
-// LOADING SCREEN
+// LOADING
 // =====================================
 
 if(loading){
@@ -1058,20 +1056,13 @@ return(
 <View style={styles.loading}>
 
 <ActivityIndicator
-
 size="large"
-
 color={colors.primary}
-
 />
 
-
 <Text style={styles.loadingText}>
-
 Loading map...
-
 </Text>
-
 
 </View>
 
@@ -1105,7 +1096,9 @@ onPress={handleMapPress}
 
 ref={cameraRef}
 
-zoomLevel={15}
+zoomLevel={16}
+
+pitch={45}
 
 centerCoordinate={
 
@@ -1114,11 +1107,8 @@ location
 ?
 
 [
-
 location.longitude,
-
 location.latitude
-
 ]
 
 :
@@ -1128,6 +1118,7 @@ location.latitude
 }
 
 />
+
 
 
 
@@ -1152,9 +1143,7 @@ location.latitude
 <View style={styles.carMarker}>
 
 <Text>
-
 🚗
-
 </Text>
 
 </View>
@@ -1166,8 +1155,10 @@ location.latitude
 
 
 
+
 {
 
+route &&
 route.length > 0 &&
 
 <MapLibreGL.ShapeSource
@@ -1202,7 +1193,6 @@ p.latitude
 
 >
 
-
 <MapLibreGL.LineLayer
 
 id="routeLine"
@@ -1228,6 +1218,7 @@ lineWidth:5
 
 reports.map(report=>(
 
+
 <MapLibreGL.PointAnnotation
 
 key={report.id}
@@ -1244,27 +1235,18 @@ report.latitude
 
 >
 
-
 <Text style={styles.reportIcon}>
 
 {
 
 report.type==="traffic"
-
 ?
-
 "🚗"
-
 :
-
 report.type==="police"
-
 ?
-
 "🚓"
-
 :
-
 "💥"
 
 }
@@ -1274,16 +1256,20 @@ report.type==="police"
 
 </MapLibreGL.PointAnnotation>
 
+
 ))
 
 }
+
+
+
 </MapLibreGL.MapView>
 
 
 
 
 
-{/* MUSIC PANEL */}
+{/* MUSIC */}
 
 <View
 
@@ -1293,7 +1279,8 @@ styles.musicContainer,
 
 {
 
-top: insets.top + 20
+top:
+insets.top+20
 
 }
 
@@ -1304,28 +1291,30 @@ top: insets.top + 20
 
 <TouchableOpacity
 
-onPress={toggleMusic}
-
 style={styles.musicHeader}
+
+onPress={toggleMusic}
 
 >
 
 <Text style={styles.musicTitle}>
-
 🎵 Music
-
 </Text>
 
 
 <Text style={styles.musicArrow}>
 
-{musicOpen ? "▲" : "▼"}
+{
+musicOpen
+?
+"▲"
+:
+"▼"
+}
 
 </Text>
 
-
 </TouchableOpacity>
-
 
 
 
@@ -1335,37 +1324,65 @@ musicOpen &&
 
 <Animated.View
 
-style={[
-
-styles.musicBox,
-
-{
-
-transform:[
-
-{
-
-translateX:
-
-musicAnimation.interpolate({
-
-inputRange:[0,1],
-
-outputRange:[250,0]
-
-})
-
-}
-
-]
-
-}
-
-]
-
-}
+style={styles.musicBox}
 
 >
+
+
+<TouchableOpacity
+
+style={styles.musicButton}
+
+onPress={previousTrack}
+
+>
+
+<Text>
+⏮ Previous
+</Text>
+
+</TouchableOpacity>
+
+
+
+<TouchableOpacity
+
+style={styles.musicButton}
+
+onPress={togglePlay}
+
+>
+
+<Text>
+
+{
+playing
+?
+"⏸ Pause"
+:
+"▶ Play"
+}
+
+</Text>
+
+</TouchableOpacity>
+
+
+
+<TouchableOpacity
+
+style={styles.musicButton}
+
+onPress={nextTrack}
+
+>
+
+<Text>
+⏭ Next
+</Text>
+
+</TouchableOpacity>
+
 
 
 <TouchableOpacity
@@ -1376,29 +1393,8 @@ onPress={openSpotify}
 
 >
 
-<Text style={styles.musicText}>
-
+<Text>
 Spotify
-
-</Text>
-
-</TouchableOpacity>
-
-
-
-
-<TouchableOpacity
-
-style={styles.musicButton}
-
-onPress={openAppleMusic}
-
->
-
-<Text style={styles.musicText}>
-
-Apple Music
-
 </Text>
 
 </TouchableOpacity>
@@ -1417,9 +1413,6 @@ Apple Music
 
 
 
-{/* SEARCH */}
-
-
 <View
 
 style={[
@@ -1428,7 +1421,8 @@ styles.searchBox,
 
 {
 
-top:insets.top + 80
+top:
+insets.top+80
 
 }
 
@@ -1452,6 +1446,7 @@ style={styles.input}
 />
 
 
+
 <TouchableOpacity
 
 style={styles.searchButton}
@@ -1460,13 +1455,9 @@ onPress={handleSearch}
 
 >
 
-
-<Text style={styles.buttonText}>
-
+<Text>
 GO
-
 </Text>
-
 
 </TouchableOpacity>
 
@@ -1478,23 +1469,16 @@ GO
 
 
 
-{/* STATS */}
-
-
 <View style={styles.stats}>
 
 
 <Text style={styles.stat}>
-
 {distanceKm.toFixed(2)} km
-
 </Text>
 
 
 <Text style={styles.stat}>
-
 {speed} km/h
-
 </Text>
 
 
@@ -1503,9 +1487,6 @@ GO
 
 
 
-
-
-{/* REPORT BUTTON */}
 
 
 <TouchableOpacity
@@ -1517,20 +1498,13 @@ onPress={()=>createReport("traffic")}
 >
 
 <Text>
-
 ⚠️ REPORT
-
 </Text>
-
 
 </TouchableOpacity>
 
 
 
-
-
-
-{/* DRIVE BUTTON */}
 
 
 <TouchableOpacity
@@ -1546,40 +1520,30 @@ tracking && styles.stopButton
 onPress={
 
 tracking
-
 ?
-
 stopDrive
-
 :
-
 startDrive
 
 }
 
 >
 
-<Text style={styles.buttonText}>
+<Text>
 
 {
 
 tracking
-
 ?
-
 "END DRIVE"
-
 :
-
 "START DRIVE"
 
 }
 
 </Text>
 
-
 </TouchableOpacity>
-
 
 
 
@@ -1594,288 +1558,146 @@ tracking
 
 
 
-// =====================================
-// STYLES
-// =====================================
-
 const styles = StyleSheet.create({
 
 container:{
-
 flex:1,
-
 backgroundColor:"#000",
-
 },
-
 
 map:{
-
 flex:1,
-
 },
-
 
 loading:{
-
 flex:1,
-
-backgroundColor:"#000",
-
 justifyContent:"center",
-
 alignItems:"center",
-
+backgroundColor:"#000",
 },
-
 
 loadingText:{
-
 color:"#fff",
-
 marginTop:10,
-
 },
-
-
 
 carMarker:{
-
 backgroundColor:"#111",
-
-borderRadius:30,
-
 padding:8,
-
+borderRadius:30,
 },
-
-
 
 reportIcon:{
-
-fontSize:30,
-
+fontSize:28,
 },
-
 
 
 musicContainer:{
-
 position:"absolute",
-
 right:10,
-
 },
-
 
 
 musicHeader:{
-
 backgroundColor:"#111",
-
-paddingHorizontal:18,
-
-paddingVertical:12,
-
+padding:14,
 borderRadius:20,
-
 flexDirection:"row",
-
-alignItems:"center",
-
 },
-
 
 
 musicTitle:{
-
 color:"#00ff99",
-
 fontWeight:"900",
-
-fontSize:16,
-
 },
-
 
 
 musicArrow:{
-
 color:"#fff",
-
 marginLeft:10,
-
 },
-
 
 
 musicBox:{
-
-backgroundColor:"rgba(0,0,0,0.85)",
-
-marginTop:10,
-
+backgroundColor:"rgba(0,0,0,.85)",
 padding:10,
-
 borderRadius:15,
-
-width:180,
-
+marginTop:10,
 },
-
 
 
 musicButton:{
-
 backgroundColor:"#00ff99",
-
 padding:12,
-
-borderRadius:12,
-
-marginVertical:5,
-
+borderRadius:10,
+marginVertical:4,
 alignItems:"center",
-
 },
-
-
-
-musicText:{
-
-fontWeight:"900",
-
-color:"#000",
-
-},
-
 
 
 searchBox:{
-
 position:"absolute",
-
 left:10,
-
 right:10,
-
 height:55,
-
 backgroundColor:"#111",
-
 borderRadius:15,
-
 flexDirection:"row",
-
 alignItems:"center",
-
 padding:8,
-
 },
-
 
 
 input:{
-
 flex:1,
-
 color:"#fff",
-
-paddingHorizontal:10,
-
 },
-
 
 
 searchButton:{
-
 backgroundColor:colors.primary,
-
 padding:12,
-
 borderRadius:10,
-
 },
-
-
-
-buttonText:{
-
-fontWeight:"900",
-
-color:"#000",
-
-},
-
 
 
 stats:{
-
 position:"absolute",
-
 right:15,
-
 top:170,
-
 },
-
 
 
 stat:{
-
 color:colors.primary,
-
 fontSize:22,
-
 fontWeight:"900",
-
 },
-
 
 
 reportButton:{
-
 position:"absolute",
-
 right:15,
-
 bottom:130,
-
 backgroundColor:"#ffcc00",
-
 padding:15,
-
 borderRadius:15,
-
 },
-
 
 
 driveButton:{
-
 position:"absolute",
-
 bottom:40,
-
 alignSelf:"center",
-
 backgroundColor:colors.primary,
-
-paddingVertical:18,
-
 paddingHorizontal:40,
-
+paddingVertical:18,
 borderRadius:20,
-
 },
-
 
 
 stopButton:{
-
 backgroundColor:colors.danger,
-
 },
-
 
 });
