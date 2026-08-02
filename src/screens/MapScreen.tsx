@@ -17,7 +17,7 @@ import {
   Animated,
 } from "react-native";
 
-import MapLibreGL from "@maplibre/maplibre-react-native";
+import * as MapLibreGL from "@maplibre/maplibre-react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
