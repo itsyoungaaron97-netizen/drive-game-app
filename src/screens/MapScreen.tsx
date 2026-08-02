@@ -45,10 +45,9 @@ import { colors } from "../constants/theme";
 // MAPLIBRE 3D CONFIG
 // =====================================
 
-MapLibreGL.setAccessToken(null);
 
 const MAP_STYLE =
-"https://demotiles.maplibre.org/style.json";
+"https://tiles.openfreemap.org/styles/liberty";
 
 
 // =====================================
@@ -1098,7 +1097,6 @@ ref={cameraRef}
 
 zoomLevel={16}
 
-pitch={45}
 
 centerCoordinate={
 
@@ -1116,6 +1114,8 @@ location.latitude
 [14.3,41.0]
 
 }
+
+pitch={45}
 
 />
 
