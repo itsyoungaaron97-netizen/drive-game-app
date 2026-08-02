@@ -42,12 +42,13 @@ import { colors } from "../constants/theme";
 
 
 // =====================================
-// MAPLIBRE 3D CONFIG
+// MAPLIBRE CONFIG
 // =====================================
 
+MapLibreGL.setAccessToken(null);
 
 const MAP_STYLE =
-"https://tiles.openfreemap.org/styles/liberty/style.json";
+  "https://tiles.openfreemap.org/styles/bright/style.json";
 
 
 // =====================================
@@ -55,28 +56,21 @@ const MAP_STYLE =
 // =====================================
 
 type LocationPoint = {
-  latitude:number;
-  longitude:number;
+  latitude: number;
+  longitude: number;
 };
 
 
 type RoadReport = {
-
-  id:string;
-
+  id: string;
   type:
-  | "traffic"
-  | "police"
-  | "crash";
-
-  latitude:number;
-
-  longitude:number;
-
-  user:string;
-
-  time:string;
-
+    | "traffic"
+    | "police"
+    | "crash";
+  latitude: number;
+  longitude: number;
+  user: string;
+  time: string;
 };
 
 
@@ -84,24 +78,18 @@ type RoadReport = {
 // SEARCH ADDRESS
 // =====================================
 
-async function searchAddress(
-  address:string
-){
+async function searchAddress(address:string){
 
   try{
 
     const response =
       await fetch(
-
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
-
         {
           headers:{
-            "User-Agent":
-            "DriveGame-App",
+            "User-Agent":"DriveGame-App",
           },
         }
-
       );
 
 
@@ -114,16 +102,9 @@ async function searchAddress(
 
 
     return {
-
-      latitude:
-      Number(data[0].lat),
-
-      longitude:
-      Number(data[0].lon),
-
-      name:
-      data[0].display_name,
-
+      latitude:Number(data[0].lat),
+      longitude:Number(data[0].lon),
+      name:data[0].display_name,
     };
 
 
@@ -135,7 +116,6 @@ async function searchAddress(
     );
 
     return null;
-
   }
 
 }
@@ -147,17 +127,13 @@ async function searchAddress(
 // =====================================
 
 async function getRoute(
-
   start:LocationPoint,
-
   end:LocationPoint
-
 ){
 
   try{
 
     const url =
-
     `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
 
 
@@ -173,26 +149,18 @@ async function getRoute(
       return [];
 
 
-    return (
-
-      data.routes[0]
+    return data.routes[0]
       .geometry
       .coordinates
       .map(
-
         (point:number[])=>({
 
-          latitude:
-          point[1],
+          latitude:point[1],
 
-          longitude:
-          point[0],
+          longitude:point[0],
 
         })
-
-      )
-
-    );
+      );
 
 
   }catch(error){
@@ -211,8 +179,8 @@ async function getRoute(
 
 
 
-
 export default function MapScreen(){
+
 
 const insets =
 useSafeAreaInsets();
@@ -246,10 +214,10 @@ const latestLocation =
 useRef<LocationPoint|null>(null);
 
 
+
 // =====================================
 // STATE
 // =====================================
-
 
 const [
 loading,
@@ -290,7 +258,7 @@ setTracking
 const [
 route,
 setRoute
-]=useState<LocationPoint[]>();
+]=useState<LocationPoint[]>([]);
 
 
 const [
@@ -305,8 +273,9 @@ setSelectedReportLocation
 ]=useState<LocationPoint|null>(null);
 
 
+
 // =====================================
-// MUSIC DRAWER
+// MUSIC
 // =====================================
 
 const [
@@ -333,38 +302,25 @@ new Animated.Value(0)
 ).current;
 
 
-const toggleMusic =
-()=>{
+const toggleMusic = ()=>{
 
 Animated.spring(
-
 musicAnimation,
-
 {
 toValue:
 musicOpen ? 0 : 1,
-
 useNativeDriver:true,
-
 }
-
 ).start();
 
 
 setMusicOpen(!musicOpen);
 
-};
-// =====================================
-// MUSIC CONTROLS
-// =====================================
-
-const openSpotify =
-()=>{
+};const openSpotify = ()=>{
 
 Linking.openURL(
 "spotify://"
-)
-.catch(()=>{
+).catch(()=>{
 
 Linking.openURL(
 "https://open.spotify.com"
@@ -375,13 +331,11 @@ Linking.openURL(
 };
 
 
-const openAppleMusic =
-()=>{
+const openAppleMusic = ()=>{
 
 Linking.openURL(
 "music://"
-)
-.catch(()=>{
+).catch(()=>{
 
 Linking.openURL(
 "https://music.apple.com"
@@ -392,46 +346,39 @@ Linking.openURL(
 };
 
 
-const togglePlay =
-()=>{
+const togglePlay = ()=>{
 
 setPlaying(!playing);
 
 };
 
 
-const nextTrack =
-()=>{
+const nextTrack = ()=>{
 
-setTrack(
-old=>old+1
-);
+setTrack(old=>old+1);
 
 };
 
 
-const previousTrack =
-()=>{
+const previousTrack = ()=>{
 
-setTrack(
-old=>Math.max(0,old-1)
-);
+setTrack(old=>Math.max(0,old-1));
 
 };
-
 
 
 
 // =====================================
-// LOAD LOCATION
+// LOCATION LOAD
 // =====================================
 
 useEffect(()=>{
 
-const load =
-async()=>{
+
+const load = async()=>{
 
 try{
+
 
 const permission =
 await requestLocationPermissions();
@@ -449,10 +396,8 @@ return;
 }
 
 
-
 const position =
 await getCurrentPosition();
-
 
 
 if(position){
@@ -468,7 +413,6 @@ position.coords.longitude,
 };
 
 
-
 latestLocation.current =
 current;
 
@@ -480,33 +424,24 @@ setLocation(current);
 cameraRef.current?.setCamera({
 
 centerCoordinate:[
-
 current.longitude,
-
 current.latitude
-
 ],
 
 zoomLevel:16,
 
-pitch:45,
-
-heading:0,
+pitch:60,
 
 animationDuration:1000,
 
 });
-
 
 }
 
 
 }catch(error){
 
-console.log(
-"Location error",
-error
-);
+console.log(error);
 
 
 }finally{
@@ -520,6 +455,7 @@ setLoading(false);
 
 
 load();
+
 
 
 return()=>{
@@ -552,10 +488,8 @@ if(!search.trim())
 return;
 
 
-
 const result =
 await searchAddress(search);
-
 
 
 if(!result){
@@ -570,30 +504,22 @@ return;
 }
 
 
-
 const current =
 latestLocation.current;
-
 
 
 if(!current)
 return;
 
 
-
 const newRoute =
 await getRoute(
-
 current,
-
 result
-
 );
 
 
-
 setRoute(newRoute);
-
 
 
 if(newRoute.length){
@@ -601,17 +527,13 @@ if(newRoute.length){
 cameraRef.current?.fitBounds(
 
 [
-
 newRoute[0].longitude,
 newRoute[0].latitude
-
 ],
 
 [
-
 newRoute[newRoute.length-1].longitude,
 newRoute[newRoute.length-1].latitude
-
 ],
 
 50
@@ -620,14 +542,12 @@ newRoute[newRoute.length-1].latitude
 
 }
 
-
 };
 
 
 
-
 // =====================================
-// START DRIVE
+// DRIVE
 // =====================================
 
 const startDrive =
@@ -653,13 +573,12 @@ setTracking(true);
 
 
 watchRef.current =
-
 await watchPosition(
 
 (point)=>{
 
 
-latestPoints.current = [
+latestPoints.current=[
 
 ...latestPoints.current,
 
@@ -668,35 +587,22 @@ point
 ];
 
 
-
 latestDistance.current =
-
 calculateDistanceKm(
-
 latestPoints.current
-
 );
 
 
 
 setDistanceKm(
-
 latestDistance.current
-
 );
 
 
-
 setSpeed(
-
 Math.round(
-
-(point.speed || 0)
-*
-3.6
-
+(point.speed || 0) * 3.6
 )
-
 );
 
 
@@ -704,19 +610,15 @@ Math.round(
 cameraRef.current?.setCamera({
 
 centerCoordinate:[
-
 point.longitude,
-
 point.latitude
-
 ],
 
-pitch:45,
+pitch:60,
 
 animationDuration:500,
 
 });
-
 
 }
 
@@ -727,10 +629,6 @@ animationDuration:500,
 
 
 
-
-// =====================================
-// STOP DRIVE
-// =====================================
 
 const stopDrive =
 async()=>{
@@ -745,14 +643,12 @@ watchRef.current=null;
 }
 
 
-
 setTracking(false);
 
 
 
 const savedPoints =
 latestPoints.current;
-
 
 
 if(savedPoints.length < 2){
@@ -775,19 +671,13 @@ Date.now();
 
 const duration =
 Math.round(
-
-(endedAt-startTime.current)
-/1000
-
+(endedAt-startTime.current)/1000
 );
 
 
 
 const maxSpeed =
-calculateMaxSpeedKmh(
-savedPoints
-);
-
+calculateMaxSpeedKmh(savedPoints);
 
 
 const avgSpeed =
@@ -800,7 +690,6 @@ duration
 
 const user =
 auth.currentUser;
-
 
 
 if(!user)
@@ -816,20 +705,13 @@ try{
 
 place =
 await reverseGeocode(
-
 savedPoints[0].latitude,
-
 savedPoints[0].longitude
-
 )
 ||{};
 
 
-}catch(error){
-
-console.log(error);
-
-}
+}catch(error){}
 
 
 
@@ -878,23 +760,16 @@ place.country || "",
 
 const result =
 await updateUserStats(
-
 user.uid,
-
 latestDistance.current,
-
 maxSpeed
-
 );
 
 
 
 Alert.alert(
-
 "Drive Saved",
-
 `${latestDistance.current.toFixed(2)} km\n+${result.xpGained} XP`
-
 );
 
 
@@ -920,132 +795,11 @@ setSpeed(0);
 
 
 };
-// =====================================
-// REPORTS
-// =====================================
-
-const createReport =
-(
-type:
-"traffic"
-|
-"police"
-|
-"crash"
-)=>{
-
-
-const target =
-selectedReportLocation ||
-location;
-
-
-if(!target)
-return;
-
-
-
-const report:RoadReport={
-
-id:
-Date.now().toString(),
-
-type,
-
-latitude:
-target.latitude,
-
-longitude:
-target.longitude,
-
-user:
-auth.currentUser?.displayName ||
-"Driver",
-
-time:
-"now",
-
-};
-
-
-
-setReports(
-
-old=>[
-report,
-...old
-]
-
-);
-
-
-
-setSelectedReportLocation(null);
-
-};
-
-
-
-
-
-const handleMapPress =
-(event:any)=>{
-
-
-const coords =
-event.geometry.coordinates;
-
-
-
-setSelectedReportLocation({
-
-longitude:coords[0],
-
-latitude:coords[1],
-
-});
-
-
-Alert.alert(
-
-"Road Report",
-
-"Choose event",
-
-[
-
-{
-text:"🚗 Traffic",
-onPress:()=>createReport("traffic")
-},
-
-{
-text:"🚓 Police",
-onPress:()=>createReport("police")
-},
-
-{
-text:"💥 Crash",
-onPress:()=>createReport("crash")
-},
-
-{
-text:"Cancel",
-style:"cancel"
-}
-
-]
-
-);
-
-
-};
-
 
 
 
 // =====================================
-// LOADING
+// MAP
 // =====================================
 
 if(loading){
@@ -1071,8 +825,6 @@ Loading map...
 
 
 
-
-
 return(
 
 <View style={styles.container}>
@@ -1086,21 +838,16 @@ style={styles.map}
 
 styleURL={MAP_STYLE}
 
-onPress={handleMapPress}
-
 >
 
 
 <MapLibreGL.Camera
+
 ref={cameraRef}
 
 zoomLevel={16}
 
 pitch={60}
-
-bearing={0}
-
-heading={0}
 
 centerCoordinate={
 location
@@ -1117,22 +864,15 @@ location.latitude
 
 
 
-
-
-{
-
-location &&
+{location &&
 
 <MapLibreGL.PointAnnotation
 
 id="car"
 
 coordinate={[
-
 location.longitude,
-
 location.latitude
-
 ]}
 
 >
@@ -1145,18 +885,13 @@ location.latitude
 
 </View>
 
-
 </MapLibreGL.PointAnnotation>
 
 }
 
 
 
-
-{
-
-route &&
-route.length > 0 &&
+{route.length > 0 &&
 
 <MapLibreGL.ShapeSource
 
@@ -1172,17 +907,12 @@ type:"LineString",
 
 coordinates:
 
-route.map(
-
-p=>[
+route.map(p=>[
 
 p.longitude,
-
 p.latitude
 
-]
-
-)
+])
 
 }
 
@@ -1211,328 +941,19 @@ lineWidth:5
 
 
 
-{
-
-reports.map(report=>(
-
-
-<MapLibreGL.PointAnnotation
-
-key={report.id}
-
-id={report.id}
-
-coordinate={[
-
-report.longitude,
-
-report.latitude
-
-]}
-
->
-
-<Text style={styles.reportIcon}>
-
-{
-
-report.type==="traffic"
-?
-"🚗"
-:
-report.type==="police"
-?
-"🚓"
-:
-"💥"
-
-}
-
-</Text>
-
-
-</MapLibreGL.PointAnnotation>
-
-
-))
-
-}
-
-
-
 </MapLibreGL.MapView>
 
 
-
-
-
-{/* MUSIC */}
-
-<View
-
-style={[
-
-styles.musicContainer,
-
-{
-
-top:
-insets.top+20
-
-}
-
-]}
-
->
-
-
 <TouchableOpacity
 
-style={styles.musicHeader}
-
-onPress={toggleMusic}
-
->
-
-<Text style={styles.musicTitle}>
-🎵 Music
-</Text>
-
-
-<Text style={styles.musicArrow}>
-
-{
-musicOpen
-?
-"▲"
-:
-"▼"
-}
-
-</Text>
-
-</TouchableOpacity>
-
-
-
-{
-
-musicOpen &&
-
-<Animated.View
-style={[
-styles.musicBox,
-{
-transform:[
-{
-translateY:
-musicAnimation.interpolate({
-inputRange:[0,1],
-outputRange:[-20,0]
-})
-}
-]
-}
-]}
->
-
-
-<TouchableOpacity
-
-style={styles.musicButton}
-
-onPress={previousTrack}
-
->
-
-<Text>
-⏮ Previous
-</Text>
-
-</TouchableOpacity>
-
-
-
-<TouchableOpacity
-
-style={styles.musicButton}
-
-onPress={togglePlay}
-
->
-
-<Text>
-
-{
-playing
-?
-"⏸ Pause"
-:
-"▶ Play"
-}
-
-</Text>
-
-</TouchableOpacity>
-
-
-
-<TouchableOpacity
-
-style={styles.musicButton}
-
-onPress={nextTrack}
-
->
-
-<Text>
-⏭ Next
-</Text>
-
-</TouchableOpacity>
-
-
-
-<TouchableOpacity
-
-style={styles.musicButton}
-
-onPress={openSpotify}
-
->
-
-<Text>
-Spotify
-</Text>
-
-</TouchableOpacity>
-
-
-
-</Animated.View>
-
-}
-
-
-</View>
-
-
-
-
-
-
-<View
-
-style={[
-
-styles.searchBox,
-
-{
-
-top:
-insets.top+80
-
-}
-
-]}
-
->
-
-
-<TextInput
-
-value={search}
-
-onChangeText={setSearch}
-
-placeholder="Search destination"
-
-placeholderTextColor="#999"
-
-style={styles.input}
-
-/>
-
-
-
-<TouchableOpacity
-
-style={styles.searchButton}
-
-onPress={handleSearch}
-
->
-
-<Text>
-GO
-</Text>
-
-</TouchableOpacity>
-
-
-</View>
-
-
-
-
-
-
-<View style={styles.stats}>
-
-
-<Text style={styles.stat}>
-{distanceKm.toFixed(2)} km
-</Text>
-
-
-<Text style={styles.stat}>
-{speed} km/h
-</Text>
-
-
-</View>
-
-
-
-
-
-
-<TouchableOpacity
-
-style={styles.reportButton}
-
-onPress={()=>createReport("traffic")}
-
->
-
-<Text>
-⚠️ REPORT
-</Text>
-
-</TouchableOpacity>
-
-
-
-
-
-<TouchableOpacity
-
-style={[
-
-styles.driveButton,
-
-tracking && styles.stopButton
-
-]}
+style={styles.driveButton}
 
 onPress={
-
 tracking
 ?
 stopDrive
 :
 startDrive
-
 }
 
 >
@@ -1540,19 +961,16 @@ startDrive
 <Text>
 
 {
-
 tracking
 ?
 "END DRIVE"
 :
 "START DRIVE"
-
 }
 
 </Text>
 
 </TouchableOpacity>
-
 
 
 </View>
@@ -1563,10 +981,8 @@ tracking
 
 
 
-
-
-
-const styles = StyleSheet.create({
+const styles =
+StyleSheet.create({
 
 container:{
 flex:1,
@@ -1595,104 +1011,6 @@ padding:8,
 borderRadius:30,
 },
 
-reportIcon:{
-fontSize:28,
-},
-
-
-musicContainer:{
-position:"absolute",
-right:10,
-},
-
-
-musicHeader:{
-backgroundColor:"#111",
-padding:14,
-borderRadius:20,
-flexDirection:"row",
-},
-
-
-musicTitle:{
-color:"#00ff99",
-fontWeight:"900",
-},
-
-
-musicArrow:{
-color:"#fff",
-marginLeft:10,
-},
-
-
-musicBox:{
-backgroundColor:"rgba(0,0,0,.85)",
-padding:10,
-borderRadius:15,
-marginTop:10,
-},
-
-
-musicButton:{
-backgroundColor:"#00ff99",
-padding:12,
-borderRadius:10,
-marginVertical:4,
-alignItems:"center",
-},
-
-
-searchBox:{
-position:"absolute",
-left:10,
-right:10,
-height:55,
-backgroundColor:"#111",
-borderRadius:15,
-flexDirection:"row",
-alignItems:"center",
-padding:8,
-},
-
-
-input:{
-flex:1,
-color:"#fff",
-},
-
-
-searchButton:{
-backgroundColor:colors.primary,
-padding:12,
-borderRadius:10,
-},
-
-
-stats:{
-position:"absolute",
-right:15,
-top:170,
-},
-
-
-stat:{
-color:colors.primary,
-fontSize:22,
-fontWeight:"900",
-},
-
-
-reportButton:{
-position:"absolute",
-right:15,
-bottom:130,
-backgroundColor:"#ffcc00",
-padding:15,
-borderRadius:15,
-},
-
-
 driveButton:{
 position:"absolute",
 bottom:40,
@@ -1701,11 +1019,6 @@ backgroundColor:colors.primary,
 paddingHorizontal:40,
 paddingVertical:18,
 borderRadius:20,
-},
-
-
-stopButton:{
-backgroundColor:colors.danger,
 },
 
 });
