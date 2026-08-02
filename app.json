@@ -5,25 +5,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "android": {
-      "package": "com.drivegame.app",
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
-      ]
-    },
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow DriveGame to track your drives."
-        }
-      ],
+      "expo-location",
       "@maplibre/maplibre-react-native"
     ],
+    "android": {
+      "package": "com.drivegame.app"
+    },
     "extra": {
       "eas": {
         "projectId": "59532c97-efe3-4cda-8d81-44e3aa5d3d0e"
