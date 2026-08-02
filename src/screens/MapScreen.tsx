@@ -47,7 +47,7 @@ import { colors } from "../constants/theme";
 
 
 const MAP_STYLE =
-"https://tiles.openfreemap.org/styles/liberty";
+"https://tiles.openfreemap.org/styles/liberty/style.json";
 
 
 // =====================================
@@ -1117,27 +1117,6 @@ location.latitude
 
 
 
-<MapLibreGL.FillExtrusionLayer
-  id="3d-buildings"
-  sourceID="openmaptiles"
-  sourceLayerID="building"
-  minZoomLevel={14}
-  style={{
-    fillExtrusionColor:"#888888",
-    fillExtrusionHeight:[
-      "coalesce",
-      ["get","render_height"],
-      10
-    ],
-    fillExtrusionBase:[
-      "coalesce",
-      ["get","render_min_height"],
-      0
-    ],
-    fillExtrusionOpacity:0.8,
-  }}
-/>
-
 
 
 {
@@ -1341,9 +1320,20 @@ musicOpen
 musicOpen &&
 
 <Animated.View
-
-style={styles.musicBox}
-
+style={[
+styles.musicBox,
+{
+transform:[
+{
+translateY:
+musicAnimation.interpolate({
+inputRange:[0,1],
+outputRange:[-20,0]
+})
+}
+]
+}
+]}
 >
 
 
