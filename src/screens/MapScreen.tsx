@@ -1092,31 +1092,48 @@ onPress={handleMapPress}
 
 
 <MapLibreGL.Camera
-
 ref={cameraRef}
 
 zoomLevel={16}
 
+pitch={60}
+
+bearing={0}
+
+heading={0}
 
 centerCoordinate={
-
 location
-
 ?
-
 [
 location.longitude,
 location.latitude
 ]
-
 :
-
 [14.3,41.0]
-
 }
 
-pitch={45}
+/>
 
+
+<MapLibreGL.FillExtrusionLayer
+  id="3d-buildings"
+  sourceLayerID="building"
+  minZoomLevel={14}
+  style={{
+    fillExtrusionColor: "#888888",
+    fillExtrusionHeight: [
+      "coalesce",
+      ["get", "render_height"],
+      10
+    ],
+    fillExtrusionBase: [
+      "coalesce",
+      ["get", "render_min_height"],
+      0
+    ],
+    fillExtrusionOpacity: 0.8,
+  }}
 />
 
 
