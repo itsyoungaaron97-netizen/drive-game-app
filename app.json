@@ -21,8 +21,7 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow DriveGame to track your drives."
         }
-      ],
-      "@maplibre/maplibre-react-native"
+      ]
     ],
 
     "extra": {
