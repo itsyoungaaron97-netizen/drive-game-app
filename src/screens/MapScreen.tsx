@@ -14,11 +14,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 
-import MapView, {
-  Marker,
-  Polyline,
-  UrlTile,
-} from "react-native-maps";
+import MapLibreGL from "@maplibre/maplibre-react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -42,6 +38,10 @@ import { TripPoint } from "../types";
 import { colors } from "../constants/theme";
 
 
+const MAP_STYLE =
+  "https://tiles.openfreemap.org/styles/bright/style.json";
+
+
 type LocationPoint = {
   latitude:number;
   longitude:number;
@@ -58,8 +58,10 @@ async function getRoute(
     const url =
     `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
 
+
     const response =
       await fetch(url);
+
 
     const data =
       await response.json();
@@ -72,12 +74,10 @@ async function getRoute(
     return data.routes[0]
       .geometry
       .coordinates
-      .map(
-        (point:number[])=>({
-          latitude:point[1],
-          longitude:point[0],
-        })
-      );
+      .map((point:number[])=>({
+        latitude:point[1],
+        longitude:point[0],
+      }));
 
 
   }catch(error){
@@ -97,12 +97,17 @@ async function getRoute(
 
 export default function MapScreen(){
 
+
 const insets =
 useSafeAreaInsets();
 
 
 const mapRef =
-useRef<MapView>(null);
+useRef<any>(null);
+
+
+const cameraRef =
+useRef<any>(null);
 
 
 const watchRef =
@@ -163,17 +168,13 @@ setSpeed
 
 
 
-
-
 useEffect(()=>{
 
 
 const load =
 async()=>{
 
-
 try{
-
 
 const permission =
 await requestLocationPermissions();
@@ -197,15 +198,9 @@ await getCurrentPosition();
 
 if(position){
 
-
 const current={
-
-latitude:
-position.coords.latitude,
-
-longitude:
-position.coords.longitude,
-
+latitude:position.coords.latitude,
+longitude:position.coords.longitude,
 };
 
 
@@ -216,13 +211,18 @@ current;
 setLocation(current);
 
 
-mapRef.current?.animateCamera({
+cameraRef.current?.setCamera({
 
-center:current,
+centerCoordinate:[
+current.longitude,
+current.latitude
+],
 
-zoom:16,
+zoomLevel:16,
 
-pitch:45,
+pitch:60,
+
+animationDuration:1000,
 
 });
 
@@ -241,7 +241,6 @@ setLoading(false);
 
 }
 
-
 };
 
 
@@ -251,7 +250,6 @@ load();
 
 return()=>{
 
-
 if(watchRef.current){
 
 watchRef.current.remove();
@@ -260,13 +258,10 @@ watchRef.current=null;
 
 }
 
-
 };
 
 
 },[]);
-
-
 
 
 
@@ -302,7 +297,6 @@ await watchPosition(
 latestPoints.current.push(point);
 
 
-
 latestDistance.current =
 calculateDistanceKm(
 latestPoints.current
@@ -325,27 +319,26 @@ Math.round(
 
 
 const current={
-
-latitude:
-point.latitude,
-
-longitude:
-point.longitude,
-
+latitude:point.latitude,
+longitude:point.longitude,
 };
 
 
 setLocation(current);
 
 
+cameraRef.current?.setCamera({
 
-mapRef.current?.animateCamera({
+centerCoordinate:[
+current.longitude,
+current.latitude
+],
 
-center:current,
+zoomLevel:17,
 
-zoom:17,
+pitch:60,
 
-pitch:45,
+animationDuration:500,
 
 });
 
@@ -356,7 +349,6 @@ pitch:45,
 
 
 },[]);
-
 
 
 
@@ -409,9 +401,7 @@ Math.round(
 
 
 const maxSpeed =
-calculateMaxSpeedKmh(
-savedPoints
-);
+calculateMaxSpeedKmh(savedPoints);
 
 
 const avgSpeed =
@@ -517,25 +507,11 @@ error.message || "Error"
 }
 
 
-
-latestPoints.current=[];
-
-latestDistance.current=0;
-
-setDistanceKm(0);
-
-setSpeed(0);
-
-
 };
 
 
 
-
-
-
 if(loading){
-
 
 return(
 
@@ -554,9 +530,7 @@ Loading map...
 
 );
 
-
 }
-
 
 
 
@@ -565,32 +539,35 @@ return(
 <View style={styles.container}>
 
 
-<MapView
+<MapLibreGL.MapView
 
 ref={mapRef}
 
 style={styles.map}
 
-initialRegion={{
-
-latitude:
-location?.latitude || 41.0,
-
-longitude:
-location?.longitude || 14.3,
-
-latitudeDelta:0.05,
-
-longitudeDelta:0.05,
-
-}}
+styleURL={MAP_STYLE}
 
 >
 
 
-<UrlTile
+<MapLibreGL.Camera
 
-urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+ref={cameraRef}
+
+zoomLevel={16}
+
+pitch={60}
+
+centerCoordinate={
+location
+?
+[
+location.longitude,
+location.latitude
+]
+:
+[14.3,41.0]
+}
 
 />
 
@@ -598,9 +575,14 @@ urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 
 {location &&
 
-<Marker
+<MapLibreGL.PointAnnotation
 
-coordinate={location}
+id="car"
+
+coordinate={[
+location.longitude,
+location.latitude
+]}
 
 >
 
@@ -608,7 +590,7 @@ coordinate={location}
 🚗
 </Text>
 
-</Marker>
+</MapLibreGL.PointAnnotation>
 
 }
 
@@ -616,21 +598,51 @@ coordinate={location}
 
 {route.length > 0 &&
 
-<Polyline
+<MapLibreGL.ShapeSource
 
-coordinates={route}
+id="route"
 
-strokeWidth={5}
+shape={{
 
-strokeColor="#00ff99"
+type:"Feature",
+
+geometry:{
+
+type:"LineString",
+
+coordinates:
+route.map(point=>[
+point.longitude,
+point.latitude
+])
+
+}
+
+}}
+
+>
+
+<MapLibreGL.LineLayer
+
+id="routeLine"
+
+style={{
+
+lineColor:"#00ff99",
+
+lineWidth:5
+
+}}
 
 />
+
+</MapLibreGL.ShapeSource>
 
 }
 
 
 
-</MapView>
+</MapLibreGL.MapView>
 
 
 
@@ -678,8 +690,6 @@ tracking
 
 
 }
-
-
 
 
 
