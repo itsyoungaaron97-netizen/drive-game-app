@@ -45,8 +45,6 @@ import { colors } from "../constants/theme";
 // MAPLIBRE CONFIG
 // =====================================
 
-MapLibreGL.setAccessToken(null);
-
 const MAP_STYLE =
   "https://tiles.openfreemap.org/styles/bright/style.json";
 
