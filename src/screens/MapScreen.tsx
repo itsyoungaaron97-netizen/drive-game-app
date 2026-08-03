@@ -10,14 +10,15 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   Alert,
   ActivityIndicator,
-  Linking,
-  Animated,
 } from "react-native";
 
-import MapLibreGL from "@maplibre/maplibre-react-native";
+import MapView, {
+  Marker,
+  Polyline,
+  UrlTile,
+} from "react-native-maps";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -41,88 +42,11 @@ import { TripPoint } from "../types";
 import { colors } from "../constants/theme";
 
 
-// =====================================
-// MAPLIBRE CONFIG
-// =====================================
-
-const MAP_STYLE =
-  "https://tiles.openfreemap.org/styles/bright/style.json";
-
-
-// =====================================
-// TYPES
-// =====================================
-
 type LocationPoint = {
-  latitude: number;
-  longitude: number;
+  latitude:number;
+  longitude:number;
 };
 
-
-type RoadReport = {
-  id: string;
-  type:
-    | "traffic"
-    | "police"
-    | "crash";
-  latitude: number;
-  longitude: number;
-  user: string;
-  time: string;
-};
-
-
-// =====================================
-// SEARCH ADDRESS
-// =====================================
-
-async function searchAddress(address:string){
-
-  try{
-
-    const response =
-      await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`,
-        {
-          headers:{
-            "User-Agent":"DriveGame-App",
-          },
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-    if(!data?.length)
-      return null;
-
-
-    return {
-      latitude:Number(data[0].lat),
-      longitude:Number(data[0].lon),
-      name:data[0].display_name,
-    };
-
-
-  }catch(error){
-
-    console.log(
-      "Search error",
-      error
-    );
-
-    return null;
-  }
-
-}
-
-
-
-// =====================================
-// ROUTE SERVICE
-// =====================================
 
 async function getRoute(
   start:LocationPoint,
@@ -134,10 +58,8 @@ async function getRoute(
     const url =
     `https://router.project-osrm.org/route/v1/driving/${start.longitude},${start.latitude};${end.longitude},${end.latitude}?overview=full&geometries=geojson`;
 
-
     const response =
       await fetch(url);
-
 
     const data =
       await response.json();
@@ -152,11 +74,8 @@ async function getRoute(
       .coordinates
       .map(
         (point:number[])=>({
-
           latitude:point[1],
-
           longitude:point[0],
-
         })
       );
 
@@ -176,28 +95,18 @@ async function getRoute(
 
 
 
-
 export default function MapScreen(){
-
 
 const insets =
 useSafeAreaInsets();
 
 
 const mapRef =
-useRef<any>(null);
-
-
-const cameraRef =
-useRef<any>(null);
+useRef<MapView>(null);
 
 
 const watchRef =
 useRef<any>(null);
-
-
-const startTime =
-useRef(0);
 
 
 const latestPoints =
@@ -212,10 +121,10 @@ const latestLocation =
 useRef<LocationPoint|null>(null);
 
 
+const startTime =
+useRef(0);
 
-// =====================================
-// STATE
-// =====================================
+
 
 const [
 loading,
@@ -230,9 +139,15 @@ setLocation
 
 
 const [
-search,
-setSearch
-]=useState("");
+route,
+setRoute
+]=useState<LocationPoint[]>([]);
+
+
+const [
+tracking,
+setTracking
+]=useState(false);
 
 
 const [
@@ -247,133 +162,15 @@ setSpeed
 ]=useState(0);
 
 
-const [
-tracking,
-setTracking
-]=useState(false);
 
 
-const [
-route,
-setRoute
-]=useState<LocationPoint[]>([]);
-
-
-const [
-reports,
-setReports
-]=useState<RoadReport[]>([]);
-
-
-const [
-selectedReportLocation,
-setSelectedReportLocation
-]=useState<LocationPoint|null>(null);
-
-
-
-// =====================================
-// MUSIC
-// =====================================
-
-const [
-musicOpen,
-setMusicOpen
-]=useState(false);
-
-
-const [
-playing,
-setPlaying
-]=useState(false);
-
-
-const [
-track,
-setTrack
-]=useState(0);
-
-
-const musicAnimation =
-useRef(
-new Animated.Value(0)
-).current;
-
-
-const toggleMusic = ()=>{
-
-Animated.spring(
-musicAnimation,
-{
-toValue:
-musicOpen ? 0 : 1,
-useNativeDriver:true,
-}
-).start();
-
-
-setMusicOpen(!musicOpen);
-
-};const openSpotify = ()=>{
-
-Linking.openURL(
-"spotify://"
-).catch(()=>{
-
-Linking.openURL(
-"https://open.spotify.com"
-);
-
-});
-
-};
-
-
-const openAppleMusic = ()=>{
-
-Linking.openURL(
-"music://"
-).catch(()=>{
-
-Linking.openURL(
-"https://music.apple.com"
-);
-
-});
-
-};
-
-
-const togglePlay = ()=>{
-
-setPlaying(!playing);
-
-};
-
-
-const nextTrack = ()=>{
-
-setTrack(old=>old+1);
-
-};
-
-
-const previousTrack = ()=>{
-
-setTrack(old=>Math.max(0,old-1));
-
-};
-
-
-
-// =====================================
-// LOCATION LOAD
-// =====================================
 
 useEffect(()=>{
 
 
-const load = async()=>{
+const load =
+async()=>{
+
 
 try{
 
@@ -400,6 +197,7 @@ await getCurrentPosition();
 
 if(position){
 
+
 const current={
 
 latitude:
@@ -418,21 +216,16 @@ current;
 setLocation(current);
 
 
+mapRef.current?.animateCamera({
 
-cameraRef.current?.setCamera({
+center:current,
 
-centerCoordinate:[
-current.longitude,
-current.latitude
-],
+zoom:16,
 
-zoomLevel:16,
-
-pitch:60,
-
-animationDuration:1000,
+pitch:45,
 
 });
+
 
 }
 
@@ -458,6 +251,7 @@ load();
 
 return()=>{
 
+
 if(watchRef.current){
 
 watchRef.current.remove();
@@ -465,6 +259,7 @@ watchRef.current.remove();
 watchRef.current=null;
 
 }
+
 
 };
 
@@ -474,79 +269,7 @@ watchRef.current=null;
 
 
 
-// =====================================
-// SEARCH
-// =====================================
 
-const handleSearch =
-async()=>{
-
-
-if(!search.trim())
-return;
-
-
-const result =
-await searchAddress(search);
-
-
-if(!result){
-
-Alert.alert(
-"Not found",
-"Destination unavailable"
-);
-
-return;
-
-}
-
-
-const current =
-latestLocation.current;
-
-
-if(!current)
-return;
-
-
-const newRoute =
-await getRoute(
-current,
-result
-);
-
-
-setRoute(newRoute);
-
-
-if(newRoute.length){
-
-cameraRef.current?.fitBounds(
-
-[
-newRoute[0].longitude,
-newRoute[0].latitude
-],
-
-[
-newRoute[newRoute.length-1].longitude,
-newRoute[newRoute.length-1].latitude
-],
-
-50
-
-);
-
-}
-
-};
-
-
-
-// =====================================
-// DRIVE
-// =====================================
 
 const startDrive =
 useCallback(async()=>{
@@ -576,13 +299,8 @@ await watchPosition(
 (point)=>{
 
 
-latestPoints.current=[
+latestPoints.current.push(point);
 
-...latestPoints.current,
-
-point
-
-];
 
 
 latestDistance.current =
@@ -597,6 +315,7 @@ latestDistance.current
 );
 
 
+
 setSpeed(
 Math.round(
 (point.speed || 0) * 3.6
@@ -605,18 +324,31 @@ Math.round(
 
 
 
-cameraRef.current?.setCamera({
+const current={
 
-centerCoordinate:[
+latitude:
+point.latitude,
+
+longitude:
 point.longitude,
-point.latitude
-],
 
-pitch:60,
+};
 
-animationDuration:500,
+
+setLocation(current);
+
+
+
+mapRef.current?.animateCamera({
+
+center:current,
+
+zoom:17,
+
+pitch:45,
 
 });
+
 
 }
 
@@ -624,6 +356,8 @@ animationDuration:500,
 
 
 },[]);
+
+
 
 
 
@@ -649,6 +383,7 @@ const savedPoints =
 latestPoints.current;
 
 
+
 if(savedPoints.length < 2){
 
 Alert.alert(
@@ -666,7 +401,6 @@ const endedAt =
 Date.now();
 
 
-
 const duration =
 Math.round(
 (endedAt-startTime.current)/1000
@@ -675,7 +409,9 @@ Math.round(
 
 
 const maxSpeed =
-calculateMaxSpeedKmh(savedPoints);
+calculateMaxSpeedKmh(
+savedPoints
+);
 
 
 const avgSpeed =
@@ -696,7 +432,6 @@ return;
 
 
 let place:any={};
-
 
 
 try{
@@ -776,7 +511,7 @@ Alert.alert(
 
 Alert.alert(
 "Save failed",
-error.message || "Unknown error"
+error.message || "Error"
 );
 
 }
@@ -796,11 +531,11 @@ setSpeed(0);
 
 
 
-// =====================================
-// MAP
-// =====================================
+
+
 
 if(loading){
+
 
 return(
 
@@ -819,7 +554,9 @@ Loading map...
 
 );
 
+
 }
+
 
 
 
@@ -828,35 +565,32 @@ return(
 <View style={styles.container}>
 
 
-<MapLibreGL.MapView
+<MapView
 
 ref={mapRef}
 
 style={styles.map}
 
-styleURL={MAP_STYLE}
+initialRegion={{
+
+latitude:
+location?.latitude || 41.0,
+
+longitude:
+location?.longitude || 14.3,
+
+latitudeDelta:0.05,
+
+longitudeDelta:0.05,
+
+}}
 
 >
 
 
-<MapLibreGL.Camera
+<UrlTile
 
-ref={cameraRef}
-
-zoomLevel={16}
-
-pitch={60}
-
-centerCoordinate={
-location
-?
-[
-location.longitude,
-location.latitude
-]
-:
-[14.3,41.0]
-}
+urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 
 />
 
@@ -864,26 +598,17 @@ location.latitude
 
 {location &&
 
-<MapLibreGL.PointAnnotation
+<Marker
 
-id="car"
-
-coordinate={[
-location.longitude,
-location.latitude
-]}
+coordinate={location}
 
 >
 
-<View style={styles.carMarker}>
-
-<Text>
+<Text style={styles.car}>
 🚗
 </Text>
 
-</View>
-
-</MapLibreGL.PointAnnotation>
+</Marker>
 
 }
 
@@ -891,60 +616,33 @@ location.latitude
 
 {route.length > 0 &&
 
-<MapLibreGL.ShapeSource
+<Polyline
 
-id="route"
+coordinates={route}
 
-shape={{
+strokeWidth={5}
 
-type:"Feature",
-
-geometry:{
-
-type:"LineString",
-
-coordinates:
-
-route.map(p=>[
-
-p.longitude,
-p.latitude
-
-])
-
-}
-
-}}
-
->
-
-<MapLibreGL.LineLayer
-
-id="routeLine"
-
-style={{
-
-lineColor:"#00ff99",
-
-lineWidth:5
-
-}}
+strokeColor="#00ff99"
 
 />
 
-
-</MapLibreGL.ShapeSource>
-
 }
 
 
 
-</MapLibreGL.MapView>
+</MapView>
+
+
 
 
 <TouchableOpacity
 
-style={styles.driveButton}
+style={[
+styles.driveButton,
+{
+bottom:insets.bottom+30
+}
+]}
 
 onPress={
 tracking
@@ -956,7 +654,8 @@ startDrive
 
 >
 
-<Text>
+
+<Text style={styles.buttonText}>
 
 {
 tracking
@@ -968,14 +667,19 @@ tracking
 
 </Text>
 
+
 </TouchableOpacity>
+
 
 
 </View>
 
 );
 
+
 }
+
+
 
 
 
@@ -1003,20 +707,21 @@ color:"#fff",
 marginTop:10,
 },
 
-carMarker:{
-backgroundColor:"#111",
-padding:8,
-borderRadius:30,
+car:{
+fontSize:35,
 },
 
 driveButton:{
 position:"absolute",
-bottom:40,
 alignSelf:"center",
 backgroundColor:colors.primary,
 paddingHorizontal:40,
 paddingVertical:18,
 borderRadius:20,
+},
+
+buttonText:{
+fontWeight:"bold",
 },
 
 });
