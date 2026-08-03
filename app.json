@@ -19,9 +19,10 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow DriveGame to track your drives."
+          "locationAlwaysAndInUsePermission": "Allow DriveGame to track your drives."
         }
-      ]
+      ],
+      "@maplibre/maplibre-react-native"
     ],
 
     "extra": {
