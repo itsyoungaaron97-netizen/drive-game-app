@@ -106,8 +106,7 @@
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				EFC91EBE08EB404FB9BB8F16 /* [Expo Dev Launcher] Strip Local Network Keys for Release */,
-				0CF06A1FD01E4A98BB16E05B /* [MapLibre React Native] Remove MapLibre.xcframework-ios.signature */,
+				E58B5EAF8970497AA2695A2C /* [Expo Dev Launcher] Strip Local Network Keys for Release */,
 			);
 			buildRules = (
 			);
@@ -224,7 +223,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-DriveGame/Pods-DriveGame-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		EFC91EBE08EB404FB9BB8F16 /* [Expo Dev Launcher] Strip Local Network Keys for Release */ = {
+		E58B5EAF8970497AA2695A2C /* [Expo Dev Launcher] Strip Local Network Keys for Release */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -271,23 +270,6 @@ if [ \"$CONFIGURATION\" != \"Debug\" ]; then
   fi
 fi
 ";
-		};
-		0CF06A1FD01E4A98BB16E05B /* [MapLibre React Native] Remove MapLibre.xcframework-ios.signature */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			name = "[MapLibre React Native] Remove MapLibre.xcframework-ios.signature";
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			shellPath = /bin/sh;
-			shellScript = "
-          echo \"[MapLibre React Native] Remove MapLibre.xcframework-ios.signature\";
-          rm -rf \"$CONFIGURATION_BUILD_DIR/MapLibre.xcframework-ios.signature\";
-        ";
 		};
 /* End PBXShellScriptBuildPhase section */
 
